@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -24,59 +25,110 @@ export default function LoginPage() {
       toast.success(`Welcome back, ${userData.fullName}!`);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      const msg = err.response?.data?.message;
+      setError(msg || 'Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const fillDemo = (email, password) => setForm({ email, password });
-
   return (
     <div className="auth-page">
       <div className="auth-card">
+        {/* Logo */}
         <div className="auth-logo">
           <div className="logo-icon">🚗</div>
           <div className="logo-text">Auto<em>Shine</em></div>
         </div>
-        <h1 className="auth-title">Welcome back</h1>
-        <p className="auth-subtitle">Sign in to manage your auto shop</p>
 
-        {error && <div className="alert alert-danger">⚠️ {error}</div>}
+        <h1 className="auth-title">Sign in to your account</h1>
+        <p className="auth-subtitle">Enter your credentials to access the dashboard</p>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <input className="form-control" type="email" placeholder="you@example.com"
-              value={form.email} onChange={set('email')} required />
+        {error && (
+          <div className="alert alert-danger">
+            <AlertCircle size={15} />
+            {error}
           </div>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label className="form-label">Password</label>
-            <input className="form-control" type="password" placeholder="••••••••"
-              value={form.password} onChange={set('password')} required />
+            <label className="form-label" htmlFor="email">
+              Email Address
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Mail
+                size={15}
+                style={{
+                  position: 'absolute', left: 12, top: '50%',
+                  transform: 'translateY(-50%)', color: 'var(--text-dim)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <input
+                id="email"
+                className="form-control"
+                type="email"
+                placeholder="you@autoshine.com"
+                value={form.email}
+                onChange={set('email')}
+                style={{ paddingLeft: 36 }}
+                required
+                autoComplete="email"
+                autoFocus
+              />
+            </div>
           </div>
-          <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
-            type="submit" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign In'}
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="password">
+              Password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Lock
+                size={15}
+                style={{
+                  position: 'absolute', left: 12, top: '50%',
+                  transform: 'translateY(-50%)', color: 'var(--text-dim)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <input
+                id="password"
+                className="form-control"
+                type="password"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={set('password')}
+                style={{ paddingLeft: 36 }}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+          </div>
+
+          <button
+            id="login-submit"
+            className="btn btn-primary btn-lg"
+            style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span className="spinner" style={{ width: 16, height: 16 }} /> Signing in…
+              </>
+            ) : (
+              <>
+                <LogIn size={16} /> Sign In
+              </>
+            )}
           </button>
         </form>
 
-        <div style={{ marginTop: 20, padding: '14px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-          <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 8, fontWeight: 600 }}>DEMO ACCOUNTS</p>
-          {[
-            { label: '🔴 Admin', email: 'admin@autoshine.com', password: 'Admin@123' },
-            { label: '🔵 Employee', email: 'john.mechanic@autoshine.com', password: 'Employee@123' },
-            { label: '🟢 Customer', email: 'alice@example.com', password: 'Customer@123' },
-          ].map(({ label, email, password }) => (
-            <button key={email} onClick={() => fillDemo(email, password)}
-              className="btn btn-secondary btn-sm" style={{ marginRight: 6, marginBottom: 4 }}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="auth-footer">
-          No account? <Link to="/register">Create one</Link>
+        <div className="auth-footer" style={{ marginTop: 24 }}>
+          Don't have an account?{' '}
+          <Link to="/register">Create one</Link>
         </div>
       </div>
     </div>
