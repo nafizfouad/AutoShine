@@ -27,6 +27,7 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IPackageRepository, PackageRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ─── Services ──────────────────────────────────────────────────────────────
@@ -36,6 +37,8 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 
 // ─── Mapster ───────────────────────────────────────────────────────────────
 var mapsterConfig = TypeAdapterConfig.GlobalSettings;
