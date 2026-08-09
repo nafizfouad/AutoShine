@@ -70,6 +70,37 @@ namespace AutoShine.Data.Migrations
                     b.ToTable("Bookings");
                 });
 
+            modelBuilder.Entity("AutoShine.Models.Entities.EmployeeLeave", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId", "Date");
+
+                    b.ToTable("EmployeeLeaves");
+                });
+
             modelBuilder.Entity("AutoShine.Models.Entities.EmployeeSchedule", b =>
                 {
                     b.Property<int>("Id")
@@ -104,6 +135,56 @@ namespace AutoShine.Data.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("EmployeeSchedules");
+                });
+
+            modelBuilder.Entity("AutoShine.Models.Entities.EmployeeScheduleTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<TimeSpan?>("BreakEndTime")
+                        .HasColumnType("interval");
+
+                    b.Property<TimeSpan?>("BreakStartTime")
+                        .HasColumnType("interval");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<TimeSpan>("WorkEndTime")
+                        .HasColumnType("interval");
+
+                    b.Property<TimeSpan>("WorkStartTime")
+                        .HasColumnType("interval");
+
+                    b.Property<int>("WorkingDays")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("EmployeeScheduleTemplates");
                 });
 
             modelBuilder.Entity("AutoShine.Models.Entities.InventoryItem", b =>
@@ -340,10 +421,32 @@ namespace AutoShine.Data.Migrations
                     b.Navigation("Package");
                 });
 
+            modelBuilder.Entity("AutoShine.Models.Entities.EmployeeLeave", b =>
+                {
+                    b.HasOne("AutoShine.Models.Entities.User", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
             modelBuilder.Entity("AutoShine.Models.Entities.EmployeeSchedule", b =>
                 {
                     b.HasOne("AutoShine.Models.Entities.User", "Employee")
                         .WithMany("Schedules")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("AutoShine.Models.Entities.EmployeeScheduleTemplate", b =>
+                {
+                    b.HasOne("AutoShine.Models.Entities.User", "Employee")
+                        .WithMany()
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
