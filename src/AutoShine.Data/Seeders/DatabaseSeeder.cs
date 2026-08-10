@@ -160,5 +160,32 @@ public static class DatabaseSeeder
             await context.Packages.AddRangeAsync(packages);
             await context.SaveChangesAsync();
         }
+
+        // ── Seed default employee schedule templates ──────────────────────────
+        if (!await context.EmployeeScheduleTemplates.AnyAsync())
+        {
+            var employees = await context.Users
+                .Where(u => u.Role == AutoShine.Models.Enums.UserRole.Employee && u.IsActive)
+                .ToListAsync();
+
+            // Mon-Fri bitmask: 2+4+8+16+32 = 62
+            const int MonToFri = 62;
+
+            var templates = employees.Select(emp => new AutoShine.Models.Entities.EmployeeScheduleTemplate
+            {
+                EmployeeId = emp.Id,
+                StartDate = new DateTime(2026, 1, 1),
+                EndDate = new DateTime(2026, 12, 31),
+                WorkingDays = MonToFri,
+                WorkStartTime = new TimeSpan(9, 0, 0),
+                WorkEndTime = new TimeSpan(17, 0, 0),
+                BreakStartTime = new TimeSpan(13, 0, 0),
+                BreakEndTime = new TimeSpan(14, 0, 0),
+                IsActive = true
+            }).ToList();
+
+            await context.EmployeeScheduleTemplates.AddRangeAsync(templates);
+            await context.SaveChangesAsync();
+        }
     }
 }
