@@ -14,13 +14,15 @@ public class UnitOfWork : IUnitOfWork
     public IInventoryRepository Inventory { get; }
     public IPackageRepository Packages { get; }
     public IReviewRepository Reviews { get; }
+    public IScheduleRepository Schedules { get; }
 
     public UnitOfWork(AppDbContext context,
         IUserRepository users,
         IBookingRepository bookings,
         IInventoryRepository inventory,
         IPackageRepository packages,
-        IReviewRepository reviews)
+        IReviewRepository reviews,
+        IScheduleRepository schedules)
     {
         _context = context;
         Users = users;
@@ -28,6 +30,7 @@ public class UnitOfWork : IUnitOfWork
         Inventory = inventory;
         Packages = packages;
         Reviews = reviews;
+        Schedules = schedules;
     }
 
     public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
