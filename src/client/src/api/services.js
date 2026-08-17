@@ -5,6 +5,12 @@ export const authApi = {
   register: (data) => api.post('/auth/register', data),
 };
 
+export const profileApi = {
+  get: () => api.get('/profile'),
+  update: (data) => api.put('/profile', data),
+  changePassword: (data) => api.put('/profile/password', data),
+};
+
 export const usersApi = {
   getAll: (params) => api.get('/users', { params }),
   getById: (id) => api.get(`/users/${id}`),
@@ -46,4 +52,15 @@ export const reviewsApi = {
   getByBooking: (bookingId) => api.get(`/reviews/booking/${bookingId}`),
   create: (data) => api.post('/reviews', data),
   delete: (id) => api.delete(`/reviews/${id}`),
+};
+
+export const scheduleApi = {
+  getAllTemplates: () => api.get('/schedule/templates'),
+  getTemplatesByEmployee: (empId) => api.get(`/schedule/templates/employee/${empId}`),
+  createTemplate: (data) => api.post('/schedule/templates', data),
+  deleteTemplate: (id) => api.delete(`/schedule/templates/${id}`),
+  getAllLeaves: () => api.get('/schedule/leaves'),
+  getLeavesByEmployee: (empId) => api.get(`/schedule/leaves/employee/${empId}`),
+  createLeave: (data) => api.post('/schedule/leaves', data),
+  deleteLeave: (id) => api.delete(`/schedule/leaves/${id}`),
 };

@@ -1,144 +1,90 @@
-import { useEffect, useState } from 'react';
-import AppLayout from '../components/AppLayout';
-import { PageLoader, EmptyState } from '../components/UI';
-import { packagesApi, bookingsApi } from '../api/services';
-import { useAuth } from '../context/AuthContext';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, DollarSign, Wrench } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { packagesApi } from '../api/services';
+import { Clock, DollarSign, Package, ArrowRight, Star } from 'lucide-react';
 
 export default function ServicesPage() {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [booking, setBooking] = useState(null); // {pkg, step}
-  const [slots, setSlots] = useState([]);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const [creating, setCreating] = useState(false);
-  const { isCustomer } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    packagesApi.getAll(true).then((res) => setPackages(res.data.data || []))
-      .catch(() => {}).finally(() => setLoading(false));
+    packagesApi.getAll(true)
+      .then(r => setPackages(r.data.data || []))
+      .finally(() => setLoading(false));
   }, []);
 
-  const fetchSlots = async (date) => {
-    if (!booking?.pkg || !date) return;
-    setSlotsLoading(true);
-    setSlots([]);
-    setSelectedSlot(null);
-    try {
-      const res = await bookingsApi.getAvailableSlots(booking.pkg.id, date);
-      setSlots(res.data.data || []);
-    } catch { toast.error('Failed to load slots.'); }
-    finally { setSlotsLoading(false); }
-  };
-
-  const handleDateChange = (e) => {
-    setSelectedDate(e.target.value);
-    fetchSlots(e.target.value);
-  };
-
-  const handleBook = async () => {
-    if (!selectedSlot) return;
-    setCreating(true);
-    try {
-      await bookingsApi.create({
-        packageId: booking.pkg.id,
-        startTime: selectedSlot.startTime,
-        preferredEmployeeId: null,
-      });
-      toast.success('Booking confirmed! 🎉');
-      setBooking(null);
-      navigate('/bookings');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Booking failed.');
-    } finally { setCreating(false); }
-  };
-
-  const minDate = new Date().toISOString().split('T')[0];
+  if (loading) return <div className="page-loader"><span className="spinner" /> Loading services…</div>;
 
   return (
-    <AppLayout title="Service Packages">
-      {loading ? <PageLoader /> : (
-        <>
-          <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
-            Choose a service package to book an appointment.
-          </p>
-          <div className="package-grid">
-            {packages.map((pkg) => (
-              <div className="package-card" key={pkg.id}>
-                <div className="package-name">{pkg.name}</div>
-                <div className="package-desc">{pkg.description}</div>
-                <div className="package-price">${pkg.price.toFixed(2)} <span>per service</span></div>
-                <div className="package-meta">
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={13} /> {pkg.estimatedDurationMinutes} min
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Wrench size={13} /> {pkg.items?.length ?? 0} items
-                  </span>
-                </div>
-                {isCustomer && (
-                  <button className="btn btn-primary" style={{ marginTop: 18, width: '100%', justifyContent: 'center' }}
-                    onClick={() => setBooking({ pkg })}>
-                    Book Now
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+    <div className="page fade-in">
+      <div style={{ marginBottom: 36 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Our Services</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>
+          Browse our full service catalog. When you're ready, book an appointment in seconds.
+        </p>
+      </div>
 
-      {/* Booking Modal */}
-      {booking && (
-        <div className="modal-overlay" onClick={() => setBooking(null)}>
-          <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Book — {booking.pkg.name}</h2>
-              <button className="btn btn-secondary btn-sm" onClick={() => setBooking(null)}>✕</button>
+      <div className="package-grid">
+        {packages.map(pkg => (
+          <div key={pkg.id} className="package-card">
+            <div style={{ marginBottom: 16 }}>
+              <div className="package-name">{pkg.name}</div>
+              <p className="package-desc">{pkg.description}</p>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Select Date</label>
-              <input className="form-control" type="date" min={minDate} value={selectedDate} onChange={handleDateChange} />
+            <div style={{ display: 'flex', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
+              <span className="badge badge-primary" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Clock size={11} /> {pkg.estimatedDurationMinutes} min
+              </span>
+              {pkg.packageItems && pkg.packageItems.length > 0 && (
+                <span className="badge badge-muted" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Package size={11} /> {pkg.packageItems.length} materials
+                </span>
+              )}
             </div>
 
-            {slotsLoading && <PageLoader text="Loading available slots…" />}
-
-            {!slotsLoading && selectedDate && slots.length === 0 && (
-              <EmptyState icon="📅" title="No slots available" message="Try a different date." />
-            )}
-
-            {slots.length > 0 && (
-              <div className="form-group">
-                <label className="form-label">Available Time Slots</label>
-                <div className="slots-grid">
-                  {slots.map((slot, i) => {
-                    const label = `${new Date(slot.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${new Date(slot.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-                    const sel = selectedSlot?.startTime === slot.startTime;
-                    return (
-                      <button key={i} className={`slot-btn${sel ? ' selected' : ''}`} onClick={() => setSelectedSlot(slot)}>
-                        {label}
-                      </button>
-                    );
-                  })}
+            {/* Materials list */}
+            {pkg.packageItems && pkg.packageItems.length > 0 && (
+              <div style={{ marginBottom: 18, padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                  Includes
                 </div>
+                {pkg.packageItems.map((item, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-muted)', padding: '3px 0' }}>
+                    <span>· {item.itemName || item.inventoryItemName || 'Material'}</span>
+                    <span style={{ color: 'var(--text-dim)' }}>×{item.quantityRequired}</span>
+                  </div>
+                ))}
               </div>
             )}
 
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setBooking(null)}>Cancel</button>
-              <button className="btn btn-primary" disabled={!selectedSlot || creating} onClick={handleBook}>
-                {creating ? 'Confirming…' : 'Confirm Booking'}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+              <div>
+                <div className="package-price">
+                  ${pkg.price}
+                  <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 4 }}>USD</span>
+                </div>
+              </div>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => navigate(`/book?serviceId=${pkg.id}`)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                Book This <ArrowRight size={14} />
               </button>
             </div>
           </div>
+        ))}
+      </div>
+
+      {packages.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">🔧</div>
+          <h3>No services available</h3>
+          <p>Check back soon — services are being configured.</p>
         </div>
       )}
-    </AppLayout>
+    </div>
   );
 }

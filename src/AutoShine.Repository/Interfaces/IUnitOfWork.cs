@@ -7,6 +7,7 @@ public interface IUnitOfWork : IDisposable
     IInventoryRepository Inventory { get; }
     IPackageRepository Packages { get; }
     IReviewRepository Reviews { get; }
+    IScheduleRepository Schedules { get; }
 
     Task<int> SaveChangesAsync();
     Task BeginTransactionAsync();

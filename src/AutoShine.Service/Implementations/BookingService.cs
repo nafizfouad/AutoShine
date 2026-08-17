@@ -176,26 +176,68 @@ public class BookingService : IBookingService
 
         var duration = TimeSpan.FromMinutes(package.EstimatedDurationMinutes);
         var date = request.Date.Date;
-        var slots = new List<AvailableSlotDto>();
 
-        // Generate 30-minute interval slots within shop hours
-        var slotStart = date + ShopOpen;
-        var shopCloseTime = date + ShopClose;
+        // Get templates active on this date
+        var templates = (await _unitOfWork.Schedules.GetActiveTemplatesForDateAsync(date))
+            .Where(t => t.CoversDay(date.DayOfWeek))
+            .ToList();
 
-        while (slotStart + duration <= shopCloseTime)
+        if (!templates.Any()) return Enumerable.Empty<AvailableSlotDto>();
+
+        // Existing bookings on this date (non-cancelled)
+        var dayBookings = (await _unitOfWork.Bookings.GetBookingsByDateRangeAsync(date, date.AddDays(1)))
+            .Where(b => b.Status != AutoShine.Models.Enums.BookingStatus.Cancelled)
+            .ToList();
+
+        // Build a set of 30-min candidate slots across union of all employee windows
+        var earliestStart = templates.Min(t => date + t.WorkStartTime);
+        var latestEnd     = templates.Max(t => date + t.WorkEndTime);
+
+        var slotMap = new SortedDictionary<DateTime, List<AvailableEmployeeInfo>>();
+
+        var cursor = earliestStart;
+        while (cursor + duration <= latestEnd)
         {
-            var slotEnd = slotStart + duration;
-            var availableEmployees = await _unitOfWork.Users.GetAvailableEmployeesAsync(slotStart, slotEnd);
-            var employeeList = availableEmployees.ToList();
+            var slotEnd = cursor + duration;
+            var availableForSlot = new List<AvailableEmployeeInfo>();
 
-            if (employeeList.Any())
+            foreach (var tmpl in templates)
             {
-                slots.Add(new AvailableSlotDto(slotStart, slotEnd, employeeList.Select(e => e.Id).ToList()));
+                var wStart = date + tmpl.WorkStartTime;
+                var wEnd   = date + tmpl.WorkEndTime;
+
+                // Employee window must cover entire slot
+                if (cursor < wStart || slotEnd > wEnd) goto next;
+
+                // Exclude break window (any overlap)
+                if (tmpl.BreakStartTime.HasValue && tmpl.BreakEndTime.HasValue)
+                {
+                    var bStart = date + tmpl.BreakStartTime.Value;
+                    var bEnd   = date + tmpl.BreakEndTime.Value;
+                    if (cursor < bEnd && slotEnd > bStart) goto next;
+                }
+
+                // Check leave
+                if (await _unitOfWork.Schedules.IsOnLeaveAsync(tmpl.EmployeeId, date)) goto next;
+
+                // Check booking overlap
+                var hasConflict = dayBookings.Any(b =>
+                    b.EmployeeId == tmpl.EmployeeId &&
+                    b.StartTime < slotEnd && b.EndTime > cursor);
+
+                if (!hasConflict)
+                    availableForSlot.Add(new AvailableEmployeeInfo(tmpl.EmployeeId,
+                        $"{tmpl.Employee.FirstName} {tmpl.Employee.LastName}"));
+
+                next:;
             }
 
-            slotStart = slotStart.AddMinutes(30);
+            if (availableForSlot.Any())
+                slotMap[cursor] = availableForSlot;
+
+            cursor = cursor.AddMinutes(30);
         }
 
-        return slots;
+        return slotMap.Select(kv => new AvailableSlotDto(kv.Key, kv.Key + duration, kv.Value));
     }
 }

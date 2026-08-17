@@ -29,10 +29,12 @@ public record UpdateBookingStatusDto(
     BookingStatus Status
 );
 
+public record AvailableEmployeeInfo(int Id, string Name);
+
 public record AvailableSlotDto(
     DateTime StartTime,
     DateTime EndTime,
-    List<int> AvailableEmployeeIds
+    List<AvailableEmployeeInfo> AvailableEmployees
 );
 
 public record AvailableSlotsRequestDto(

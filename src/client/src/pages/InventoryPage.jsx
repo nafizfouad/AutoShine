@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import AppLayout from '../components/AppLayout';
 import { PageLoader, EmptyState, Pagination, ConfirmModal } from '../components/UI';
 import { inventoryApi } from '../api/services';
@@ -6,6 +6,7 @@ import { Plus, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const EMPTY_FORM = { itemName: '', sku: '', currentStock: '', minimumThreshold: '', unit: 'pieces' };
+
 
 export default function InventoryPage() {
   const [items, setItems] = useState([]);
@@ -19,6 +20,16 @@ export default function InventoryPage() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [allItems, setAllItems] = useState([]);          // for autocomplete
+  const [suggestions, setSuggestions] = useState([]);    // filtered suggestions
+  const autocompleteRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => { if (!autocompleteRef.current?.contains(e.target)) setSuggestions([]); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const load = async (p = page) => {
     setLoading(true);
@@ -32,7 +43,26 @@ export default function InventoryPage() {
 
   useEffect(() => { load(page); }, [page, lowOnly]);
 
+  // Load all items for autocomplete (no pagination)
+  useEffect(() => {
+    inventoryApi.getAll({ page: 1, pageSize: 1000 })
+      .then(r => setAllItems(r.data.data?.items || []));
+  }, []);
+
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleItemNameChange = (e) => {
+    const val = e.target.value;
+    setForm(f => ({ ...f, itemName: val }));
+    if (val.trim().length < 1) { setSuggestions([]); return; }
+    const q = val.toLowerCase();
+    setSuggestions(allItems.filter(i => i.itemName.toLowerCase().includes(q)));
+  };
+
+  const selectSuggestion = (item) => {
+    setForm(f => ({ ...f, itemName: item.itemName, sku: item.sku, unit: item.unit }));
+    setSuggestions([]);
+  };
 
   const openCreate = () => { setForm(EMPTY_FORM); setEditId(null); setModal('form'); };
   const openEdit = (item) => {
@@ -128,7 +158,31 @@ export default function InventoryPage() {
               <button className="btn btn-secondary btn-sm" onClick={() => setModal(null)}>✕</button>
             </div>
             <form onSubmit={handleSave}>
-              <div className="form-group"><label className="form-label">Item Name</label><input className="form-control" value={form.itemName} onChange={set('itemName')} required /></div>
+              <div className="form-group">
+                <label className="form-label">Item Name</label>
+                <div className="autocomplete-wrapper" ref={autocompleteRef}>
+                  <input
+                    className="form-control"
+                    value={form.itemName}
+                    onChange={handleItemNameChange}
+                    onFocus={handleItemNameChange.bind(null, { target: { value: form.itemName } })}
+                    placeholder="Type to search or enter new name…"
+                    required
+                    autoComplete="off"
+                  />
+                  {suggestions.length > 0 && (
+                    <div className="autocomplete-dropdown">
+                      {suggestions.map((item) => (
+                        <div key={item.id} className="autocomplete-item"
+                          onMouseDown={() => selectSuggestion(item)}>
+                          <strong>{item.itemName}</strong>
+                          <span style={{ color: 'var(--text-dim)', fontSize: 12, marginLeft: 8 }}>{item.sku}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
               {!editId && <div className="form-group"><label className="form-label">SKU</label><input className="form-control" placeholder="e.g. OIL-5W30" value={form.sku} onChange={set('sku')} required /></div>}
               <div className="form-row">
                 <div className="form-group"><label className="form-label">Current Stock</label><input className="form-control" type="number" min="0" value={form.currentStock} onChange={set('currentStock')} required /></div>
