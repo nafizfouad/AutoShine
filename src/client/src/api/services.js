@@ -58,9 +58,11 @@ export const scheduleApi = {
   getAllTemplates: () => api.get('/schedule/templates'),
   getTemplatesByEmployee: (empId) => api.get(`/schedule/templates/employee/${empId}`),
   createTemplate: (data) => api.post('/schedule/templates', data),
+  updateTemplate: (id, data) => api.put(`/schedule/templates/${id}`, data),
   deleteTemplate: (id) => api.delete(`/schedule/templates/${id}`),
   getAllLeaves: () => api.get('/schedule/leaves'),
   getLeavesByEmployee: (empId) => api.get(`/schedule/leaves/employee/${empId}`),
   createLeave: (data) => api.post('/schedule/leaves', data),
   deleteLeave: (id) => api.delete(`/schedule/leaves/${id}`),
 };
+
