@@ -174,8 +174,8 @@ public static class DatabaseSeeder
             var templates = employees.Select(emp => new AutoShine.Models.Entities.EmployeeScheduleTemplate
             {
                 EmployeeId = emp.Id,
-                StartDate = new DateTime(2026, 1, 1),
-                EndDate = new DateTime(2026, 12, 31),
+                StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
                 WorkingDays = MonToFri,
                 WorkStartTime = new TimeSpan(9, 0, 0),
                 WorkEndTime = new TimeSpan(17, 0, 0),
