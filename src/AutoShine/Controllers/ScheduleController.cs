@@ -37,6 +37,15 @@ public class ScheduleController : ControllerBase
         return CreatedAtAction(nameof(GetAllTemplates), ApiResponse<object>.Ok(result, "Template created."));
     }
 
+    [HttpPut("templates/{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateTemplate(int id, [FromBody] CreateScheduleTemplateDto dto)
+    {
+        var result = await _svc.UpdateTemplateAsync(id, dto);
+        if (result == null) return NotFound(ApiResponse<object>.Fail("Template not found."));
+        return Ok(ApiResponse<object>.Ok(result, "Template updated."));
+    }
+
     [HttpDelete("templates/{id:int}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteTemplate(int id)
