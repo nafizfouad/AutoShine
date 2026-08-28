@@ -49,6 +49,25 @@ public class ScheduleService : IScheduleService
         return ToTemplateDto(saved);
     }
 
+    public async Task<ScheduleTemplateDto?> UpdateTemplateAsync(int id, CreateScheduleTemplateDto dto)
+    {
+        var t = await _uow.Schedules.GetTemplateByIdAsync(id);
+        if (t == null) return null;
+        t.EmployeeId = dto.EmployeeId;
+        t.StartDate = dto.StartDate;
+        t.EndDate = dto.EndDate;
+        t.WorkingDays = dto.WorkingDays;
+        t.WorkStartTime = dto.WorkStartTime;
+        t.WorkEndTime = dto.WorkEndTime;
+        t.BreakStartTime = dto.BreakStartTime;
+        t.BreakEndTime = dto.BreakEndTime;
+        _uow.Schedules.UpdateTemplate(t);
+        await _uow.SaveChangesAsync();
+        var saved = (await _uow.Schedules.GetTemplatesByEmployeeAsync(t.EmployeeId))
+            .First(s => s.Id == t.Id);
+        return ToTemplateDto(saved);
+    }
+
     public async Task<bool> DeleteTemplateAsync(int id)
     {
         var t = await _uow.Schedules.GetTemplateByIdAsync(id);
