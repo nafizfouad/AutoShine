@@ -9,6 +9,7 @@ public interface IScheduleService
     Task<IEnumerable<ScheduleTemplateDto>> GetTemplatesByEmployeeAsync(int employeeId);
     Task<IEnumerable<ScheduleTemplateDto>> GetAllTemplatesAsync();
     Task<ScheduleTemplateDto> CreateTemplateAsync(CreateScheduleTemplateDto dto);
+    Task<ScheduleTemplateDto?> UpdateTemplateAsync(int id, CreateScheduleTemplateDto dto);
     Task<bool> DeleteTemplateAsync(int id);
 
     // Leaves
