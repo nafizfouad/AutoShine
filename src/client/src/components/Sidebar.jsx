@@ -27,7 +27,7 @@ const customerNav = [
   { label: 'My Bookings', icon: Calendar, path: '/bookings' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onToggle }) {
   const { user, logout, isAdmin, isEmployee } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,50 +36,53 @@ export default function Sidebar() {
   const initials = user ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() : '?';
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${isOpen ? '' : ' sidebar-collapsed'}`}>
       <div className="sidebar-logo">
         <div className="logo-icon">🚗</div>
-        <span>Auto<em>Shine</em></span>
+        {isOpen && <span>Auto<em>Shine</em></span>}
       </div>
 
       <div className="sidebar-section">
-        <div className="sidebar-label">Menu</div>
+        {isOpen && <div className="sidebar-label">Menu</div>}
         {nav.map(({ label, icon: Icon, path }) => (
           <button
             key={path}
             id={`nav-${path.replace('/', '').replace('-', '_')}`}
-            className={`nav-item${location.pathname === path ? ' active' : ''}`}
+            className={`nav-item${location.pathname === path ? ' active' : ''}${!isOpen ? ' nav-item-icon-only' : ''}`}
             onClick={() => navigate(path)}
+            title={!isOpen ? label : undefined}
           >
             <Icon className="nav-icon" size={18} />
-            {label}
+            {isOpen && label}
           </button>
         ))}
       </div>
 
       <div className="sidebar-footer">
-        {/* Clicking name/avatar goes to profile */}
         <button
           id="nav-profile"
-          className="user-chip-btn"
+          className={`user-chip-btn${!isOpen ? ' user-chip-btn-collapsed' : ''}`}
           onClick={() => navigate('/profile')}
-          title="View/edit profile"
+          title={isOpen ? 'View/edit profile' : `${user?.firstName} ${user?.lastName}`}
         >
           <div className="user-avatar">{initials}</div>
-          <div className="user-info">
-            <div className="user-name">{user?.firstName} {user?.lastName}</div>
-            <div className="user-role">{user?.role}</div>
-          </div>
-          <User size={14} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
+          {isOpen && (
+            <div className="user-info">
+              <div className="user-name">{user?.firstName} {user?.lastName}</div>
+              <div className="user-role">{user?.role}</div>
+            </div>
+          )}
+          {isOpen && <User size={14} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />}
         </button>
         <button
           id="nav-signout"
-          className="nav-item"
+          className={`nav-item${!isOpen ? ' nav-item-icon-only' : ''}`}
           style={{ marginTop: 8, color: 'var(--danger)' }}
           onClick={() => { logout(); navigate('/login'); }}
+          title={!isOpen ? 'Sign Out' : undefined}
         >
           <LogOut size={18} />
-          Sign Out
+          {isOpen && 'Sign Out'}
         </button>
       </div>
     </aside>
