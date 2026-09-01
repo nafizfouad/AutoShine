@@ -74,18 +74,24 @@ export default function BookingsPage() {
 
   return (
     <AppLayout title={isAdmin ? 'All Bookings' : 'My Bookings'}>
+      <div className="page-header">
+        <div className="page-header-info">
+          <h1 className="page-title">{isAdmin ? 'All Bookings' : 'My Bookings'}</h1>
+          <p className="page-subtitle">
+            {isAdmin ? 'Manage all customer appointments' : isEmployee ? 'Your assigned jobs' : 'Your appointment history'}
+          </p>
+        </div>
+        <select className="form-control" style={{ width: 170 }} value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+          {STATUSES.map((s) => <option key={s} value={s}>{s || 'All Statuses'}</option>)}
+        </select>
+      </div>
+
       <div className="card">
         <div className="card-header">
           <div>
             <div className="card-title">Bookings</div>
-            <div className="card-subtitle">
-              {isAdmin ? 'Manage all customer appointments' : isEmployee ? 'Your assigned jobs' : 'Your appointment history'}
-            </div>
           </div>
-          <select className="form-control" style={{ width: 170 }} value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
-            {STATUSES.map((s) => <option key={s} value={s}>{s || 'All Statuses'}</option>)}
-          </select>
         </div>
 
         {loading ? <PageLoader /> : bookings.length === 0
