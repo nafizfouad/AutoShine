@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { packagesApi, bookingsApi, usersApi } from '../api/services';
+import { packagesApi, bookingsApi } from '../api/services';
+import AppLayout from '../components/AppLayout';
 import Calendar from '../components/Calendar';
+import { PageLoader } from '../components/UI';
 import toast from 'react-hot-toast';
-import { Clock, DollarSign, CheckCircle, ChevronRight, ChevronLeft, User } from 'lucide-react';
+import { Clock, DollarSign, CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const STEPS = ['Service', 'Date', 'Time & Staff', 'Confirm'];
 
@@ -21,7 +23,7 @@ export default function BookPage() {
   const [slots, setSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [selectedEmployee, setSelectedEmployee] = useState(null); // null = no preference
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [notes, setNotes] = useState('');
   const [booking, setBooking] = useState(false);
   const [done, setDone] = useState(false);
@@ -38,7 +40,6 @@ export default function BookPage() {
     });
   }, []);
 
-  // Load slots when date or package changes
   useEffect(() => {
     if (!selectedDate || !selectedPackage) return;
     setSlots([]); setSelectedSlot(null); setSelectedEmployee(null);
@@ -66,33 +67,31 @@ export default function BookPage() {
     } finally { setBooking(false); }
   };
 
-  const stepClass = (i) =>
-    i < step ? 'done' : i === step ? 'active' : '';
+  const stepClass = (i) => i < step ? 'done' : i === step ? 'active' : '';
 
   if (done) {
     return (
-      <div className="page fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <CheckCircle size={64} style={{ color: 'var(--success)', marginBottom: 20 }} />
-          <h2 style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>Booking Confirmed!</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: 28 }}>
-            Your <strong>{selectedPackage?.name}</strong> appointment on <strong>{fmtDate(selectedSlot?.startTime)}</strong><br />
-            at <strong>{fmt(selectedSlot?.startTime)}</strong> has been booked.
-          </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <button className="btn btn-secondary" onClick={() => navigate('/bookings')}>View My Bookings</button>
-            <button className="btn btn-primary" onClick={() => { setDone(false); setStep(0); setSelectedPackage(null); setSelectedDate(null); setSelectedSlot(null); }}>Book Another</button>
+      <AppLayout title="Book a Service">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+          <div style={{ textAlign: 'center' }}>
+            <CheckCircle size={64} style={{ color: 'var(--success)', marginBottom: 20 }} />
+            <h2 style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>Booking Confirmed!</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: 28 }}>
+              Your <strong>{selectedPackage?.name}</strong> appointment on <strong>{fmtDate(selectedSlot?.startTime)}</strong><br />
+              at <strong>{fmt(selectedSlot?.startTime)}</strong> has been booked.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button className="btn btn-secondary" onClick={() => navigate('/bookings')}>View My Bookings</button>
+              <button className="btn btn-primary" onClick={() => { setDone(false); setStep(0); setSelectedPackage(null); setSelectedDate(null); setSelectedSlot(null); }}>Book Another</button>
+            </div>
           </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="page fade-in">
-      <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Book a Service</h1>
-      <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 32 }}>Follow the steps to schedule your appointment</p>
-
+    <AppLayout title="Book a Service">
       {/* Step indicator */}
       <div className="wizard-steps">
         {STEPS.map((label, i) => (
@@ -131,7 +130,7 @@ export default function BookPage() {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 28 }}>
+          <div style={{ marginTop: 24 }}>
             <button className="btn btn-primary btn-lg" disabled={!selectedPackage} onClick={() => setStep(1)}>
               Continue <ChevronRight size={16} />
             </button>
@@ -141,39 +140,41 @@ export default function BookPage() {
 
       {/* Step 1 — Date */}
       {step === 1 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 32, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'var(--gap)', alignItems: 'start' }}>
           <div>
             <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Choose a Date</h2>
             <Calendar
               selected={selectedDate}
               onChange={setSelectedDate}
-              disabledDays={[0, 6]}  // disabled Sun & Sat by default
+              disabledDays={[0, 6]}
               minDate={new Date()}
             />
           </div>
-          <div className="card" style={{ alignSelf: 'start' }}>
-            <div className="card-title" style={{ marginBottom: 12 }}>Selected Service</div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>{selectedPackage?.name}</div>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '6px 0 16px' }}>{selectedPackage?.description}</p>
-            <div style={{ display: 'flex', gap: 16 }}>
-              <span style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Clock size={13} /> {selectedPackage?.estimatedDurationMinutes} min
-              </span>
-              <span style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <DollarSign size={13} /> ${selectedPackage?.price}
-              </span>
-            </div>
-            {selectedDate && (
-              <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(99,102,241,0.08)', borderRadius: 'var(--radius-sm)', color: 'var(--primary-light)', fontWeight: 600, fontSize: 14 }}>
-                📅 {fmtDate(selectedDate)}
+          <div>
+            <div className="card" style={{ marginBottom: 'var(--gap)' }}>
+              <div className="card-title" style={{ marginBottom: 12 }}>Selected Service</div>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>{selectedPackage?.name}</div>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '6px 0 16px' }}>{selectedPackage?.description}</p>
+              <div style={{ display: 'flex', gap: 16 }}>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Clock size={13} /> {selectedPackage?.estimatedDurationMinutes} min
+                </span>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <DollarSign size={13} /> ${selectedPackage?.price}
+                </span>
               </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-secondary" onClick={() => setStep(0)}><ChevronLeft size={15} /> Back</button>
-            <button className="btn btn-primary" disabled={!selectedDate} onClick={() => setStep(2)}>
-              Continue <ChevronRight size={16} />
-            </button>
+              {selectedDate && (
+                <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(99,102,241,0.08)', borderRadius: 'var(--radius-sm)', color: 'var(--primary-light)', fontWeight: 600, fontSize: 14 }}>
+                  📅 {fmtDate(selectedDate)}
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-secondary" onClick={() => setStep(0)}><ChevronLeft size={15} /> Back</button>
+              <button className="btn btn-primary" disabled={!selectedDate} onClick={() => setStep(2)}>
+                Continue <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -184,7 +185,7 @@ export default function BookPage() {
           <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Available Time Slots</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>{fmtDate(selectedDate)} · {selectedPackage?.name}</p>
 
-          {loadingSlots && <div className="page-loader"><span className="spinner" /> Loading available slots…</div>}
+          {loadingSlots && <PageLoader />}
 
           {!loadingSlots && slots.length === 0 && (
             <div className="empty-state">
@@ -197,7 +198,7 @@ export default function BookPage() {
 
           {!loadingSlots && slots.length > 0 && (
             <>
-              <div className="slot-grid" style={{ marginBottom: 28 }}>
+              <div className="slot-grid" style={{ marginBottom: 24 }}>
                 {slots.map((slot, i) => (
                   <div
                     key={i}
@@ -216,8 +217,6 @@ export default function BookPage() {
               {selectedSlot && (
                 <div>
                   <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Staff Preference</h3>
-
-                  {/* No preference option */}
                   <div
                     className={`employee-option ${selectedEmployee === null && selectedSlot ? 'selected' : ''}`}
                     onClick={() => setSelectedEmployee(null)}
@@ -229,7 +228,6 @@ export default function BookPage() {
                     </div>
                     {selectedEmployee === null && <CheckCircle size={16} style={{ color: 'var(--primary-light)', marginLeft: 'auto' }} />}
                   </div>
-
                   {selectedSlot.availableEmployees?.map(emp => (
                     <div
                       key={emp.id}
@@ -249,7 +247,7 @@ export default function BookPage() {
             </>
           )}
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
             <button className="btn btn-secondary" onClick={() => setStep(1)}><ChevronLeft size={15} /> Back</button>
             <button className="btn btn-primary" disabled={!selectedSlot} onClick={() => setStep(3)}>
               Continue <ChevronRight size={16} />
@@ -262,7 +260,7 @@ export default function BookPage() {
       {step === 3 && (
         <div style={{ maxWidth: 520 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Review & Confirm</h2>
-          <div className="card" style={{ marginBottom: 20 }}>
+          <div className="card" style={{ marginBottom: 'var(--gap)' }}>
             {[
               ['Service', selectedPackage?.name],
               ['Date', fmtDate(selectedDate)],
@@ -288,6 +286,6 @@ export default function BookPage() {
           </div>
         </div>
       )}
-    </div>
+    </AppLayout>
   );
 }
