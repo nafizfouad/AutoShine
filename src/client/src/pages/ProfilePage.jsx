@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { profileApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
+import AppLayout from '../components/AppLayout';
 import toast from 'react-hot-toast';
 import { User, Lock, Save, Eye, EyeOff } from 'lucide-react';
+import { PageLoader } from '../components/UI';
 
 export default function ProfilePage() {
   const { user, login } = useAuth();
@@ -32,7 +34,6 @@ export default function ProfilePage() {
       const r = await profileApi.update(form);
       const updated = r.data.data;
       setProfile(updated);
-      // Update auth context name
       const token = localStorage.getItem('token');
       login({ ...user, firstName: updated.firstName, lastName: updated.lastName }, token);
       toast.success('Profile updated!');
@@ -54,14 +55,19 @@ export default function ProfilePage() {
     } finally { setChangingPw(false); }
   };
 
-  if (!profile) return <div className="page-loader"><span className="spinner" /> Loading profile…</div>;
+  if (!profile) return (
+    <AppLayout title="My Profile">
+      <PageLoader />
+    </AppLayout>
+  );
 
   const initials = `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
 
   return (
-    <div className="page fade-in">
+    <AppLayout title="My Profile">
       <div className="profile-page">
-        <div style={{ marginBottom: 32 }}>
+        {/* Avatar + name header */}
+        <div className="profile-header">
           <div className="profile-avatar-ring">{initials}</div>
           <h1 style={{ fontSize: 24, fontWeight: 800 }}>{profile.firstName} {profile.lastName}</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>
@@ -69,8 +75,8 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        {/* Profile form */}
-        <div className="card profile-section">
+        {/* Personal information */}
+        <div className="card">
           <div className="card-header">
             <div>
               <div className="card-title">Personal Information</div>
@@ -106,8 +112,8 @@ export default function ProfilePage() {
           </form>
         </div>
 
-        {/* Password form */}
-        <div className="card profile-section">
+        {/* Change password */}
+        <div className="card">
           <div className="card-header">
             <div>
               <div className="card-title">Change Password</div>
@@ -152,6 +158,6 @@ export default function ProfilePage() {
           </form>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
