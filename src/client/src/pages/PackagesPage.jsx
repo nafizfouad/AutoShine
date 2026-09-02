@@ -75,8 +75,11 @@ export default function PackagesPage() {
 
   return (
     <AppLayout title="Service Packages">
-      <div className="card-header" style={{ marginBottom: 20 }}>
-        <div className="card-title">Manage Packages</div>
+      <div className="page-header">
+        <div className="page-header-info">
+          <h1 className="page-title">Manage Packages</h1>
+          <p className="page-subtitle">Create, edit, and deactivate service packages</p>
+        </div>
         <button className="btn btn-primary" onClick={openCreate}><Plus size={16} /> New Package</button>
       </div>
 
