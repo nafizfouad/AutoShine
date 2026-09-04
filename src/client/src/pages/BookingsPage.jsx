@@ -66,9 +66,10 @@ export default function BookingsPage() {
       toast.success(`Status updated to ${next}`);
       load(page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Update failed. Check inventory levels.');
+      toast.error(err.response?.data?.message || 'Failed to update status.');
     } finally { setUpdating(null); }
   };
+
 
   const STATUSES = ['', 'Pending', 'Confirmed', 'InProgress', 'Completed', 'Cancelled'];
 
