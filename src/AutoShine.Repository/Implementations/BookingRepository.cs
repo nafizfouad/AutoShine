@@ -14,10 +14,12 @@ public class BookingRepository : GenericRepository<Booking>, IBookingRepository
         => await _dbSet
             .Include(b => b.Package)
             .Include(b => b.Employee)
+            .Include(b => b.Customer)
             .Include(b => b.Review)
             .Where(b => b.CustomerId == customerId)
             .OrderByDescending(b => b.StartTime)
             .ToListAsync();
+
 
     public async Task<IEnumerable<Booking>> GetBookingsByEmployeeAsync(int employeeId)
         => await _dbSet
