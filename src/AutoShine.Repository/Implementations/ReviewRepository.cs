@@ -12,6 +12,7 @@ public class ReviewRepository : GenericRepository<Review>, IReviewRepository
     public async Task<IEnumerable<Review>> GetReviewsByEmployeeAsync(int employeeId)
         => await _dbSet
             .Include(r => r.Customer)
+            .Include(r => r.Employee)
             .Include(r => r.Booking)
             .Where(r => r.EmployeeId == employeeId)
             .OrderByDescending(r => r.CreatedAt)
@@ -20,6 +21,7 @@ public class ReviewRepository : GenericRepository<Review>, IReviewRepository
     public async Task<Review?> GetReviewByBookingAsync(int bookingId)
         => await _dbSet
             .Include(r => r.Customer)
+            .Include(r => r.Employee)
             .FirstOrDefaultAsync(r => r.BookingId == bookingId);
 
     public async Task<double> GetAverageRatingForEmployeeAsync(int employeeId)
