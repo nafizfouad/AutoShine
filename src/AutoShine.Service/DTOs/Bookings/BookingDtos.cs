@@ -15,7 +15,8 @@ public record BookingDto(
     DateTime EndTime,
     string Status,
     string? Notes,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    bool HasReview
 );
 
 public record CreateBookingDto(
