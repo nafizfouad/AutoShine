@@ -138,11 +138,18 @@ export default function BookingsPage() {
                           )}
                           {/* Customer: leave review on completed booking */}
                           {isCustomer && b.status === 'Completed' && b.employeeId && (
-                            <button className="btn btn-sm btn-secondary" onClick={() => setReviewBooking(b)}
-                              title="Leave a review" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Star size={12} /> Review
-                            </button>
+                            b.hasReview ? (
+                              <span className="badge badge-success" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Star size={11} /> Reviewed
+                              </span>
+                            ) : (
+                              <button className="btn btn-sm btn-secondary" onClick={() => setReviewBooking(b)}
+                                title="Leave a review" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Star size={12} /> Review
+                              </button>
+                            )
                           )}
+
                           {/* Cancel button */}
                           {b.status !== 'Completed' && b.status !== 'Cancelled' && (
                             <button className="btn btn-sm btn-danger" onClick={() => setCancelTarget(b.id)}>
