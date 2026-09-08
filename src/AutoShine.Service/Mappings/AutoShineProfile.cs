@@ -40,7 +40,8 @@ public class AutoShineProfile : IRegister
                 : null)
             .Map(dest => dest.PackageName,   src => src.Package.Name)
             .Map(dest => dest.PackagePrice,  src => src.Package.Price)
-            .Map(dest => dest.Status,        src => src.Status.ToString());
+            .Map(dest => dest.Status,        src => src.Status.ToString())
+            .Map(dest => dest.HasReview,     src => src.Review != null);
 
         // ── Review ──────────────────────────────────────────────────────
         config.NewConfig<Review, ReviewDto>()
