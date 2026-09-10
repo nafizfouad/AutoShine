@@ -1,0 +1,47 @@
+# Build results
+bin/
+obj/
+out/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Test results
+TestResults/
+[Cc]overage/
+*.coverage
+*.coveragexml
+
+# Publish output
+[Pp]ublish/
+*.pubxml
+*.pubxml.user
+
+# Secrets / local overrides
+appsettings.*.local.json
+*.env
+.env
+
+# React / Node (once frontend is added)
+node_modules/
+build/
+dist/
+npm-debug.log*
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
