@@ -5,7 +5,6 @@ using AutoShine.Service.DTOs.Common;
 using AutoShine.Service.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace AutoShine.Controllers;
 
@@ -21,11 +20,16 @@ public class BookingsController : ControllerBase
         _bookingService = bookingService;
     }
 
-    private int GetCurrentUserId() =>
-        int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private int GetCurrentUserId() => User.GetUserId();
 
-    private string GetCurrentUserRole() =>
-        User.FindFirstValue(ClaimTypes.Role)!;
+    private UserRole GetCurrentUserRole() => User.GetUserRole();
+
+    private bool CanView(BookingDto booking) => GetCurrentUserRole() switch
+    {
+        UserRole.Admin => true,
+        UserRole.Employee => booking.EmployeeId == GetCurrentUserId(),
+        _ => booking.CustomerId == GetCurrentUserId()
+    };
 
     /// <summary>Get all bookings with optional status filter (Admin only).</summary>
     [HttpGet]
@@ -48,7 +52,7 @@ public class BookingsController : ControllerBase
 
         IEnumerable<BookingDto> bookings = role switch
         {
-            "Employee" => await _bookingService.GetEmployeeBookingsAsync(userId),
+            UserRole.Employee => await _bookingService.GetEmployeeBookingsAsync(userId),
             _ => await _bookingService.GetCustomerBookingsAsync(userId)
         };
 
@@ -61,14 +65,16 @@ public class BookingsController : ControllerBase
     {
         var booking = await _bookingService.GetBookingByIdAsync(id);
         if (booking == null) return NotFound(ApiResponse<BookingDto>.Fail("Booking not found."));
+        if (!CanView(booking))
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<BookingDto>.Fail("You do not have access to this booking."));
         return Ok(ApiResponse<BookingDto>.Ok(booking));
     }
 
-    /// <summary>Get available time slots for a package on a given date.</summary>
+    /// <summary>Get available time slots for a package on a given date (yyyy-MM-dd, shop time zone).</summary>
     [HttpGet("available-slots")]
     public async Task<ActionResult<ApiResponse<IEnumerable<AvailableSlotDto>>>> GetAvailableSlots(
         [FromQuery] int packageId,
-        [FromQuery] DateTime date)
+        [FromQuery] DateOnly date)
     {
         var slots = await _bookingService.GetAvailableSlotsAsync(new AvailableSlotsRequestDto(packageId, date));
         return Ok(ApiResponse<IEnumerable<AvailableSlotDto>>.Ok(slots));
@@ -91,7 +97,7 @@ public class BookingsController : ControllerBase
     public async Task<ActionResult<ApiResponse<BookingDto>>> UpdateStatus(int id, [FromBody] UpdateBookingStatusDto dto)
     {
         var actorId = GetCurrentUserId();
-        var booking = await _bookingService.UpdateBookingStatusAsync(id, dto.Status, actorId);
+        var booking = await _bookingService.UpdateBookingStatusAsync(id, dto.Status, actorId, GetCurrentUserRole());
         if (booking == null) return NotFound(ApiResponse<BookingDto>.Fail("Booking not found."));
         return Ok(ApiResponse<BookingDto>.Ok(booking, "Status updated."));
     }
@@ -101,7 +107,7 @@ public class BookingsController : ControllerBase
     public async Task<ActionResult<ApiResponse<bool>>> CancelBooking(int id)
     {
         var actorId = GetCurrentUserId();
-        var success = await _bookingService.CancelBookingAsync(id, actorId);
+        var success = await _bookingService.CancelBookingAsync(id, actorId, GetCurrentUserRole());
         if (!success) return NotFound(ApiResponse<bool>.Fail("Booking not found."));
         return Ok(ApiResponse<bool>.Ok(true, "Booking cancelled."));
     }
