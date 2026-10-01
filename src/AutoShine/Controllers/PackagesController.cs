@@ -17,11 +17,12 @@ public class PackagesController : ControllerBase
         _packageService = packageService;
     }
 
-    /// <summary>Get all active packages (public).</summary>
+    /// <summary>Get active packages (public). Admins may pass activeOnly=false to include inactive ones.</summary>
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<PackageDto>>>> GetPackages(
         [FromQuery] bool activeOnly = true)
     {
+        if (!User.IsInRole("Admin")) activeOnly = true;
         var packages = await _packageService.GetAllPackagesAsync(activeOnly);
         return Ok(ApiResponse<IEnumerable<PackageDto>>.Ok(packages));
     }
