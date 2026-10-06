@@ -130,7 +130,7 @@ public class BookingServiceTests
         await fx.Ctx.SaveChangesAsync();
 
         var svc = new BookingService(fx.Uow, fx.Mapper);
-        var result = await svc.UpdateBookingStatusAsync(1, BookingStatus.Confirmed, actorUserId: 1);
+        var result = await svc.UpdateBookingStatusAsync(1, BookingStatus.Confirmed, actorUserId: 1, UserRole.Employee);
 
         Assert.NotNull(result);
         Assert.Equal("Confirmed", result!.Status);
@@ -151,7 +151,7 @@ public class BookingServiceTests
         await fx.Ctx.SaveChangesAsync();
 
         var svc = new BookingService(fx.Uow, fx.Mapper);
-        var result = await svc.UpdateBookingStatusAsync(1, BookingStatus.Completed, actorUserId: 1);
+        var result = await svc.UpdateBookingStatusAsync(1, BookingStatus.Completed, actorUserId: 1, UserRole.Employee);
 
         Assert.Equal("Completed", result!.Status);
         var updatedItem = await fx.Uow.Inventory.GetByIdAsync(1);
@@ -174,7 +174,7 @@ public class BookingServiceTests
         var svc = new BookingService(fx.Uow, fx.Mapper);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.UpdateBookingStatusAsync(1, BookingStatus.Completed, actorUserId: 1));
+            () => svc.UpdateBookingStatusAsync(1, BookingStatus.Completed, actorUserId: 1, UserRole.Employee));
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class BookingServiceTests
     {
         using var fx = await BuildFixtureWithScheduleAsync();
         var svc = new BookingService(fx.Uow, fx.Mapper);
-        Assert.Null(await svc.UpdateBookingStatusAsync(999, BookingStatus.Confirmed, 1));
+        Assert.Null(await svc.UpdateBookingStatusAsync(999, BookingStatus.Confirmed, 1, UserRole.Employee));
     }
 
     // ── CancelBookingAsync ───────────────────────────────────────────────────
@@ -195,7 +195,7 @@ public class BookingServiceTests
         await fx.Ctx.SaveChangesAsync();
 
         var svc = new BookingService(fx.Uow, fx.Mapper);
-        var result = await svc.CancelBookingAsync(1, actorUserId: 100);
+        var result = await svc.CancelBookingAsync(1, actorUserId: 100, UserRole.Customer);
 
         Assert.True(result);
         var booking = await fx.Uow.Bookings.GetByIdAsync(1);
@@ -211,7 +211,7 @@ public class BookingServiceTests
 
         var svc = new BookingService(fx.Uow, fx.Mapper);
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.CancelBookingAsync(1, actorUserId: 100));
+            () => svc.CancelBookingAsync(1, actorUserId: 100, UserRole.Customer));
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public class BookingServiceTests
 
         var svc = new BookingService(fx.Uow, fx.Mapper);
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.CancelBookingAsync(1, actorUserId: 100));
+            () => svc.CancelBookingAsync(1, actorUserId: 100, UserRole.Customer));
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public class BookingServiceTests
     {
         using var fx = await BuildFixtureWithScheduleAsync();
         var svc = new BookingService(fx.Uow, fx.Mapper);
-        Assert.False(await svc.CancelBookingAsync(999, actorUserId: 100));
+        Assert.False(await svc.CancelBookingAsync(999, actorUserId: 100, UserRole.Customer));
     }
 
     // ── GetAllBookingsAsync ──────────────────────────────────────────────────
