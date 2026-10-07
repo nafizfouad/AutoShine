@@ -28,7 +28,7 @@ public class ReviewServiceTests
         using var fx = await BuildFixtureAsync();
         var svc = new ReviewService(fx.Uow, fx.Mapper);
 
-        var dto = new CreateReviewDto(BookingId: 1, EmployeeId: 1, Rating: 5, Comment: "Great!");
+        var dto = new CreateReviewDto(BookingId: 1, Rating: 5, Comment: "Great!");
         var result = await svc.CreateReviewAsync(customerId: 100, dto);
 
         Assert.Equal(5, result.Rating);
@@ -43,7 +43,7 @@ public class ReviewServiceTests
         using var fx = await BuildFixtureAsync();
         var svc = new ReviewService(fx.Uow, fx.Mapper);
 
-        var dto = new CreateReviewDto(BookingId: 999, EmployeeId: 1, Rating: 4, Comment: null);
+        var dto = new CreateReviewDto(BookingId: 999, Rating: 4, Comment: null);
         await Assert.ThrowsAsync<KeyNotFoundException>(
             () => svc.CreateReviewAsync(100, dto));
     }
@@ -54,7 +54,7 @@ public class ReviewServiceTests
         using var fx = await BuildFixtureAsync();
         var svc = new ReviewService(fx.Uow, fx.Mapper);
 
-        var dto = new CreateReviewDto(BookingId: 1, EmployeeId: 1, Rating: 3, Comment: null);
+        var dto = new CreateReviewDto(BookingId: 1, Rating: 3, Comment: null);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => svc.CreateReviewAsync(customerId: 999 /* not the owner */, dto));
     }
@@ -71,7 +71,7 @@ public class ReviewServiceTests
         await fx.SeedAsync(emp, cust, pkg, booking);
 
         var svc = new ReviewService(fx.Uow, fx.Mapper);
-        var dto = new CreateReviewDto(BookingId: 1, EmployeeId: 1, Rating: 5, Comment: null);
+        var dto = new CreateReviewDto(BookingId: 1, Rating: 5, Comment: null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => svc.CreateReviewAsync(100, dto));
@@ -86,7 +86,7 @@ public class ReviewServiceTests
         await fx.SeedAsync(existingReview);
 
         var svc = new ReviewService(fx.Uow, fx.Mapper);
-        var dto = new CreateReviewDto(BookingId: 1, EmployeeId: 1, Rating: 4, Comment: null);
+        var dto = new CreateReviewDto(BookingId: 1, Rating: 4, Comment: null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => svc.CreateReviewAsync(100, dto));
@@ -100,7 +100,7 @@ public class ReviewServiceTests
     {
         using var fx = await BuildFixtureAsync();
         var svc = new ReviewService(fx.Uow, fx.Mapper);
-        var dto = new CreateReviewDto(BookingId: 1, EmployeeId: 1, Rating: rating, Comment: null);
+        var dto = new CreateReviewDto(BookingId: 1, Rating: rating, Comment: null);
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => svc.CreateReviewAsync(100, dto));
