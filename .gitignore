@@ -31,6 +31,8 @@ TestResults/
 *.pubxml.user
 
 # Secrets / local overrides
+# appsettings.json holds local secrets; copy src/AutoShine/appsettings.example.json to create it.
+src/AutoShine/appsettings.json
 appsettings.*.local.json
 *.env
 .env
