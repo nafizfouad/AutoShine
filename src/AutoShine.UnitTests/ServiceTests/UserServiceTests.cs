@@ -117,7 +117,7 @@ public class UserServiceTests
     {
         using var fx = new ServiceFixture();
         var svc = new UserService(fx.Uow, fx.Mapper);
-        var dto = new CreateUserDto("Carol", "White", "carol@test.com", "P@ss1!", "555-0003", UserRole.Employee);
+        var dto = new CreateUserDto("Carol", "White", "carol@test.com", "P@ssw0rd1!", "555-0003", UserRole.Employee);
 
         var result = await svc.CreateUserAsync(dto);
 
@@ -133,7 +133,7 @@ public class UserServiceTests
         using var fx = new ServiceFixture();
         await fx.SeedAsync(Seed.Customer(1));
         var svc = new UserService(fx.Uow, fx.Mapper);
-        var dto = new CreateUserDto("X", "Y", "cust1@test.com", "pass", "x", UserRole.Customer);
+        var dto = new CreateUserDto("X", "Y", "cust1@test.com", "Password1", "x", UserRole.Customer);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateUserAsync(dto));
     }
@@ -147,7 +147,7 @@ public class UserServiceTests
         await fx.SeedAsync(Seed.Customer(5));
         var svc = new UserService(fx.Uow, fx.Mapper);
 
-        var dto = new UpdateUserDto("Updated", "Name", "555-9999", true);
+        var dto = new UpdateUserDto("Updated", "Name", "cust5@test.com", "555-9999", UserRole.Customer, true);
         var result = await svc.UpdateUserAsync(5, dto);
 
         Assert.NotNull(result);
@@ -163,7 +163,7 @@ public class UserServiceTests
         var svc = new UserService(fx.Uow, fx.Mapper);
 
         var result = await svc.UpdateUserAsync(6,
-            new UpdateUserDto("Bob", "Jones", "555-0002", false));
+            new UpdateUserDto("Bob", "Jones", "cust6@test.com", "555-0002", UserRole.Customer, false));
 
         Assert.False(result!.IsActive);
     }
@@ -173,7 +173,7 @@ public class UserServiceTests
     {
         using var fx = new ServiceFixture();
         var svc = new UserService(fx.Uow, fx.Mapper);
-        Assert.Null(await svc.UpdateUserAsync(999, new UpdateUserDto("X", "Y", "z", true)));
+        Assert.Null(await svc.UpdateUserAsync(999, new UpdateUserDto("X", "Y", "x@test.com", "z", UserRole.Customer, true)));
     }
 
     // ── DeleteUserAsync (soft delete) ─────────────────────────────────────────
