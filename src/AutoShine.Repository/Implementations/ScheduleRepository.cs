@@ -50,6 +50,12 @@ public class ScheduleRepository : IScheduleRepository
         => await _context.EmployeeLeaves
             .AnyAsync(l => l.EmployeeId == employeeId && l.Date.Date == date.Date);
 
+    public async Task<HashSet<int>> GetEmployeeIdsOnLeaveAsync(DateTime date)
+        => (await _context.EmployeeLeaves
+            .Where(l => l.Date.Date == date.Date)
+            .Select(l => l.EmployeeId)
+            .ToListAsync()).ToHashSet();
+
     public async Task AddLeaveAsync(EmployeeLeave leave)
         => await _context.EmployeeLeaves.AddAsync(leave);
 
