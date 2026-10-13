@@ -3,7 +3,6 @@ using AutoShine.Service.DTOs.Reviews;
 using AutoShine.Service.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace AutoShine.Controllers;
 
@@ -19,8 +18,7 @@ public class ReviewsController : ControllerBase
         _reviewService = reviewService;
     }
 
-    private int GetCurrentUserId() =>
-        int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private int GetCurrentUserId() => User.GetUserId();
 
     /// <summary>Get all reviews for an employee.</summary>
     [HttpGet("employee/{employeeId:int}")]
@@ -37,6 +35,11 @@ public class ReviewsController : ControllerBase
     {
         var review = await _reviewService.GetReviewByBookingAsync(bookingId);
         if (review == null) return NotFound(ApiResponse<ReviewDto>.Fail("No review found for this booking."));
+
+        var userId = GetCurrentUserId();
+        if (!User.IsInRole("Admin") && review.CustomerId != userId && review.EmployeeId != userId)
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<ReviewDto>.Fail("You do not have access to this review."));
+
         return Ok(ApiResponse<ReviewDto>.Ok(review));
     }
 
