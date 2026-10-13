@@ -3,7 +3,6 @@ using AutoShine.Service.DTOs.Schedules;
 using AutoShine.Service.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace AutoShine.Controllers;
 
@@ -14,8 +13,6 @@ public class ScheduleController : ControllerBase
 {
     private readonly IScheduleService _svc;
     public ScheduleController(IScheduleService svc) => _svc = svc;
-
-    private int GetUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     // ── Templates ────────────────────────────────────────────────────────────
 
