@@ -1,4 +1,5 @@
 using AutoShine.Common;
+using AutoShine.Models.Enums;
 using AutoShine.Service.DTOs.Common;
 using AutoShine.Service.DTOs.Users;
 using AutoShine.Service.Interfaces;
@@ -56,6 +57,9 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<UserDto>>> UpdateUser(int id, [FromBody] UpdateUserDto dto)
     {
+        if (id == User.GetUserId() && (!dto.IsActive || dto.Role != UserRole.Admin))
+            return BadRequest(ApiResponse<UserDto>.Fail("You cannot deactivate your own account or remove your own admin role."));
+
         var user = await _userService.UpdateUserAsync(id, dto);
         if (user == null) return NotFound(ApiResponse<UserDto>.Fail("User not found."));
         return Ok(ApiResponse<UserDto>.Ok(user, "User updated."));
@@ -66,6 +70,9 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteUser(int id)
     {
+        if (id == User.GetUserId())
+            return BadRequest(ApiResponse<bool>.Fail("You cannot deactivate your own account."));
+
         var success = await _userService.DeleteUserAsync(id);
         if (!success) return NotFound(ApiResponse<bool>.Fail("User not found."));
         return Ok(ApiResponse<bool>.Ok(true, "User deactivated."));
