@@ -13,7 +13,6 @@ public class AppDbContext : DbContext
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Review> Reviews => Set<Review>();
-    public DbSet<EmployeeSchedule> EmployeeSchedules => Set<EmployeeSchedule>();
     public DbSet<EmployeeScheduleTemplate> EmployeeScheduleTemplates => Set<EmployeeScheduleTemplate>();
     public DbSet<EmployeeLeave> EmployeeLeaves => Set<EmployeeLeave>();
 
