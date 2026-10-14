@@ -16,6 +16,8 @@ public record LoginDto(
 public record AuthResponseDto(
     string Token,
     string Email,
+    string FirstName,
+    string LastName,
     string FullName,
     string Role,
     int UserId,
