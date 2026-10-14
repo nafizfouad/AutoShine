@@ -37,12 +37,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasForeignKey(b => b.EmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Schedules
-        builder.HasMany(u => u.Schedules)
-            .WithOne(s => s.Employee)
-            .HasForeignKey(s => s.EmployeeId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         // Reviews written by customer
         builder.HasMany(u => u.Reviews)
             .WithOne(r => r.Customer)
