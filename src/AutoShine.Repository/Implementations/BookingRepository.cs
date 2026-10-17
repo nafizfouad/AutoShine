@@ -34,7 +34,7 @@ public class BookingRepository : GenericRepository<Booking>, IBookingRepository
             .Include(b => b.Customer)
             .Include(b => b.Employee)
             .Include(b => b.Package)
-            .Where(b => b.StartTime >= start && b.StartTime <= end)
+            .Where(b => b.StartTime < end && b.EndTime > start)
             .OrderBy(b => b.StartTime)
             .ToListAsync();
 
