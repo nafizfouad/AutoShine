@@ -101,42 +101,6 @@ namespace AutoShine.Data.Migrations
                     b.ToTable("EmployeeLeaves");
                 });
 
-            modelBuilder.Entity("AutoShine.Models.Entities.EmployeeSchedule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DayOfWeek")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("EmployeeId")
-                        .HasColumnType("integer");
-
-                    b.Property<TimeSpan>("EndTime")
-                        .HasColumnType("interval");
-
-                    b.Property<bool>("IsAvailable")
-                        .HasColumnType("boolean");
-
-                    b.Property<TimeSpan>("StartTime")
-                        .HasColumnType("interval");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.ToTable("EmployeeSchedules");
-                });
-
             modelBuilder.Entity("AutoShine.Models.Entities.EmployeeScheduleTemplate", b =>
                 {
                     b.Property<int>("Id")
@@ -432,17 +396,6 @@ namespace AutoShine.Data.Migrations
                     b.Navigation("Employee");
                 });
 
-            modelBuilder.Entity("AutoShine.Models.Entities.EmployeeSchedule", b =>
-                {
-                    b.HasOne("AutoShine.Models.Entities.User", "Employee")
-                        .WithMany("Schedules")
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-                });
-
             modelBuilder.Entity("AutoShine.Models.Entities.EmployeeScheduleTemplate", b =>
                 {
                     b.HasOne("AutoShine.Models.Entities.User", "Employee")
@@ -524,8 +477,6 @@ namespace AutoShine.Data.Migrations
                     b.Navigation("EmployeeBookings");
 
                     b.Navigation("Reviews");
-
-                    b.Navigation("Schedules");
                 });
 #pragma warning restore 612, 618
         }
