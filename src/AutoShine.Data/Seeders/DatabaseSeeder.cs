@@ -1,65 +1,136 @@
 using AutoShine.Models.Entities;
 using AutoShine.Models.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace AutoShine.Data.Seeders;
 
+/// <summary>
+/// Seed configuration. Credentials are never hard-coded: they come from
+/// appsettings.json (local, git-ignored) or environment variables (production).
+/// </summary>
+/// <param name="AdminEmail">Seed:AdminEmail — used only when no admin account exists yet.</param>
+/// <param name="AdminPassword">Seed:AdminPassword — min 8 characters.</param>
+/// <param name="SeedDemoUsers">Create the demo employees/customer (Development only).</param>
+/// <param name="DemoPassword">Seed:DemoPassword — shared password for the demo accounts.</param>
+public record SeedSettings(
+    string? AdminEmail,
+    string? AdminPassword,
+    bool SeedDemoUsers,
+    string? DemoPassword);
+
 public static class DatabaseSeeder
 {
-    public static async Task SeedAsync(AppDbContext context)
+    private const int MinPasswordLength = 8;
+
+    public static async Task SeedAsync(AppDbContext context, SeedSettings settings, ILogger logger)
     {
-        await context.Database.EnsureCreatedAsync();
+        await SeedAdminAsync(context, settings, logger);
 
-        if (!await context.Users.AnyAsync())
+        if (settings.SeedDemoUsers)
+            await SeedDemoUsersAsync(context, settings, logger);
+
+        await SeedCatalogAsync(context);
+    }
+
+    // ── Users ────────────────────────────────────────────────────────────────
+
+    private static async Task SeedAdminAsync(AppDbContext context, SeedSettings settings, ILogger logger)
+    {
+        if (await context.Users.AnyAsync(u => u.Role == UserRole.Admin))
+            return;
+
+        if (string.IsNullOrWhiteSpace(settings.AdminEmail) || string.IsNullOrWhiteSpace(settings.AdminPassword))
         {
-            var admin = new User
-            {
-                FirstName = "Admin",
-                LastName = "AutoShine",
-                Email = "admin@autoshine.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
-                Phone = "555-0100",
-                Role = UserRole.Admin,
-                IsActive = true
-            };
-
-            var emp1 = new User
-            {
-                FirstName = "John",
-                LastName = "Mechanic",
-                Email = "john.mechanic@autoshine.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Employee@123"),
-                Phone = "555-0101",
-                Role = UserRole.Employee,
-                IsActive = true
-            };
-
-            var emp2 = new User
-            {
-                FirstName = "Sarah",
-                LastName = "Washer",
-                Email = "sarah.washer@autoshine.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Employee@123"),
-                Phone = "555-0102",
-                Role = UserRole.Employee,
-                IsActive = true
-            };
-
-            var customer = new User
-            {
-                FirstName = "Alice",
-                LastName = "Customer",
-                Email = "alice@example.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Customer@123"),
-                Phone = "555-0200",
-                Role = UserRole.Customer,
-                IsActive = true
-            };
-
-            await context.Users.AddRangeAsync(admin, emp1, emp2, customer);
-            await context.SaveChangesAsync();
+            logger.LogWarning(
+                "No admin account exists. Set Seed:AdminEmail and Seed:AdminPassword " +
+                "(appsettings.json locally, Seed__AdminEmail / Seed__AdminPassword env vars in production) " +
+                "and restart to create one.");
+            return;
         }
 
+        if (settings.AdminPassword.Length < MinPasswordLength)
+        {
+            logger.LogWarning("Seed:AdminPassword must be at least {Min} characters. Admin account not created.", MinPasswordLength);
+            return;
+        }
+
+        var email = settings.AdminEmail.Trim().ToLowerInvariant();
+        var existing = await context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (existing != null)
+        {
+            logger.LogWarning("Seed:AdminEmail {Email} belongs to an existing non-admin account. Admin account not created.", email);
+            return;
+        }
+
+        context.Users.Add(new User
+        {
+            FirstName = "Admin",
+            LastName = "AutoShine",
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(settings.AdminPassword),
+            Role = UserRole.Admin,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded admin account {Email}.", email);
+    }
+
+    private static async Task SeedDemoUsersAsync(AppDbContext context, SeedSettings settings, ILogger logger)
+    {
+        if (string.IsNullOrWhiteSpace(settings.DemoPassword) || settings.DemoPassword.Length < MinPasswordLength)
+        {
+            logger.LogWarning(
+                "Seed:DemoUsers is enabled but Seed:DemoPassword is missing or shorter than {Min} characters. Demo accounts not created.",
+                MinPasswordLength);
+            return;
+        }
+
+        var demoUsers = new[]
+        {
+            new User { FirstName = "John",  LastName = "Mechanic", Email = "john.mechanic@autoshine.com", Phone = "555-0101", Role = UserRole.Employee },
+            new User { FirstName = "Sarah", LastName = "Washer",   Email = "sarah.washer@autoshine.com",  Phone = "555-0102", Role = UserRole.Employee },
+            new User { FirstName = "Alice", LastName = "Customer", Email = "alice@example.com",           Phone = "555-0200", Role = UserRole.Customer },
+        };
+
+        var created = new List<User>();
+        foreach (var user in demoUsers)
+        {
+            if (await context.Users.AnyAsync(u => u.Email == user.Email)) continue;
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(settings.DemoPassword);
+            user.IsActive = true;
+            context.Users.Add(user);
+            created.Add(user);
+        }
+        if (created.Count == 0) return;
+        await context.SaveChangesAsync();
+
+        // Give new demo employees a Mon–Fri 09:00–17:00 schedule with a 13:00–14:00 break,
+        // running from the start of this year for five years. Admins can edit it afterwards.
+        const int MonToFri = 2 | 4 | 8 | 16 | 32;
+        var year = DateTime.UtcNow.Year;
+        context.EmployeeScheduleTemplates.AddRange(created
+            .Where(u => u.Role == UserRole.Employee)
+            .Select(emp => new EmployeeScheduleTemplate
+            {
+                EmployeeId = emp.Id,
+                StartDate = new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                EndDate = new DateTime(year + 4, 12, 31, 0, 0, 0, DateTimeKind.Utc),
+                WorkingDays = MonToFri,
+                WorkStartTime = new TimeSpan(9, 0, 0),
+                WorkEndTime = new TimeSpan(17, 0, 0),
+                BreakStartTime = new TimeSpan(13, 0, 0),
+                BreakEndTime = new TimeSpan(14, 0, 0),
+                IsActive = true
+            }));
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded {Count} demo account(s).", created.Count);
+    }
+
+    // ── Inventory & packages (no secrets) ────────────────────────────────────
+
+    private static async Task SeedCatalogAsync(AppDbContext context)
+    {
         if (!await context.InventoryItems.AnyAsync())
         {
             var items = new List<InventoryItem>
@@ -158,33 +229,6 @@ public static class DatabaseSeeder
             };
 
             await context.Packages.AddRangeAsync(packages);
-            await context.SaveChangesAsync();
-        }
-
-        // ── Seed default employee schedule templates ──────────────────────────
-        if (!await context.EmployeeScheduleTemplates.AnyAsync())
-        {
-            var employees = await context.Users
-                .Where(u => u.Role == AutoShine.Models.Enums.UserRole.Employee && u.IsActive)
-                .ToListAsync();
-
-            // Mon-Fri bitmask: 2+4+8+16+32 = 62
-            const int MonToFri = 62;
-
-            var templates = employees.Select(emp => new AutoShine.Models.Entities.EmployeeScheduleTemplate
-            {
-                EmployeeId = emp.Id,
-                StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
-                WorkingDays = MonToFri,
-                WorkStartTime = new TimeSpan(9, 0, 0),
-                WorkEndTime = new TimeSpan(17, 0, 0),
-                BreakStartTime = new TimeSpan(13, 0, 0),
-                BreakEndTime = new TimeSpan(14, 0, 0),
-                IsActive = true
-            }).ToList();
-
-            await context.EmployeeScheduleTemplates.AddRangeAsync(templates);
             await context.SaveChangesAsync();
         }
     }
