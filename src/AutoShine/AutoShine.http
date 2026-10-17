@@ -1,6 +1,23 @@
 @AutoShine_HostAddress = http://localhost:5200
 
-GET {{AutoShine_HostAddress}}/weatherforecast/
+### Public: list active packages
+GET {{AutoShine_HostAddress}}/api/packages
 Accept: application/json
 
-###
+### Log in (use an account seeded from your Seed:* settings)
+# @name login
+POST {{AutoShine_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "your-demo-password"
+}
+
+### Available slots for a package on a date (yyyy-MM-dd, shop time zone)
+GET {{AutoShine_HostAddress}}/api/bookings/available-slots?packageId=1&date=2026-10-05
+Authorization: Bearer {{login.response.body.$.data.token}}
+
+### My bookings
+GET {{AutoShine_HostAddress}}/api/bookings/my
+Authorization: Bearer {{login.response.body.$.data.token}}
