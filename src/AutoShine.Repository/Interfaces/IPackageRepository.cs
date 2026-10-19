@@ -6,4 +6,5 @@ public interface IPackageRepository : IGenericRepository<Package>
 {
     Task<Package?> GetPackageWithItemsAsync(int packageId);
     Task<IEnumerable<Package>> GetActivePackagesAsync();
+    Task<IEnumerable<Package>> GetAllPackagesWithItemsAsync();
 }
