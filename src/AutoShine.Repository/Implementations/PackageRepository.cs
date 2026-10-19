@@ -22,4 +22,11 @@ public class PackageRepository : GenericRepository<Package>, IPackageRepository
                 .ThenInclude(pi => pi.InventoryItem)
             .OrderBy(p => p.Price)
             .ToListAsync();
+
+    public async Task<IEnumerable<Package>> GetAllPackagesWithItemsAsync()
+        => await _dbSet
+            .Include(p => p.PackageItems)
+                .ThenInclude(pi => pi.InventoryItem)
+            .OrderBy(p => p.Price)
+            .ToListAsync();
 }
