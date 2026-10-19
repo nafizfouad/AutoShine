@@ -24,4 +24,11 @@ public class InventoryRepository : GenericRepository<InventoryItem>, IInventoryR
         item.CurrentStock -= quantity;
         return true;
     }
+
+    public async Task<List<string>> GetPackageNamesUsingItemAsync(int itemId)
+        => await _context.PackageItems
+            .Where(pi => pi.InventoryItemId == itemId)
+            .Select(pi => pi.Package.Name)
+            .Distinct()
+            .ToListAsync();
 }
