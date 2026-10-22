@@ -10,3 +10,12 @@ public class PagedResult<T>
     public bool HasPreviousPage => Page > 1;
     public bool HasNextPage => Page < TotalPages;
 }
+
+public static class Paging
+{
+    public const int MaxPageSize = 1000;
+
+    /// <summary>Clamps user-supplied paging values so bad input can't cause errors or huge queries.</summary>
+    public static (int Page, int PageSize) Normalize(int page, int pageSize) =>
+        (Math.Max(1, page), Math.Clamp(pageSize, 1, MaxPageSize));
+}

@@ -14,7 +14,6 @@ public record ReviewDto(
 
 public record CreateReviewDto(
     int BookingId,
-    int EmployeeId,
     int Rating,
     string? Comment
 );

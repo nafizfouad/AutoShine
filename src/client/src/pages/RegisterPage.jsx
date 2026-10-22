@@ -63,7 +63,7 @@ export default function RegisterPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Password</label>
-            <input className="form-control" type="password" placeholder="Min 6 characters" value={form.password} onChange={set('password')} required minLength={6} />
+            <input className="form-control" type="password" placeholder="Min 8 characters" value={form.password} onChange={set('password')} required minLength={8} />
           </div>
           <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
             type="submit" disabled={loading}>

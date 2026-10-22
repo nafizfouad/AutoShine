@@ -45,19 +45,19 @@ export default function ScheduleManagementPage() {
   const [lForm, setLForm] = useState(initLeave);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    usersApi.getAll({ role: 'Employee' }).then(r => {
-      const all = r.data.data?.items || r.data.data || [];
-      setEmployees(all.filter(u => u.role === 'Employee'));
-    });
-    loadTemplates();
-    loadLeaves();
-  }, []);
-
   const loadTemplates = () =>
     scheduleApi.getAllTemplates().then(r => setTemplates(r.data.data || []));
   const loadLeaves = () =>
     scheduleApi.getAllLeaves().then(r => setLeaves(r.data.data || []));
+
+  useEffect(() => {
+    usersApi.getAll({ role: 'Employee', pageSize: 1000 }).then(r => {
+      const all = r.data.data?.items || r.data.data || [];
+      setEmployees(all.filter(u => u.role === 'Employee' && u.isActive));
+    });
+    loadTemplates();
+    loadLeaves();
+  }, []);
 
   const toggleDay = (bit) =>
     setTForm(f => ({ ...f, workingDays: f.workingDays ^ bit }));
@@ -108,15 +108,19 @@ export default function ScheduleManagementPage() {
       setTForm(initTemplate);
       setEditTemplateId(null);
       loadTemplates();
-    } catch { toast.error(editTemplateId ? 'Failed to update template.' : 'Failed to create template.'); }
+    } catch (err) {
+      toast.error(err.response?.data?.message || (editTemplateId ? 'Failed to update template.' : 'Failed to create template.'));
+    }
     finally { setSaving(false); }
   };
 
   const handleDeleteTemplate = async (id) => {
     if (!confirm('Delete this schedule template?')) return;
-    await scheduleApi.deleteTemplate(id);
-    toast.success('Template deleted.');
-    loadTemplates();
+    try {
+      await scheduleApi.deleteTemplate(id);
+      toast.success('Template deleted.');
+      loadTemplates();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to delete template.'); }
   };
 
   const handleCreateLeave = async (e) => {
@@ -129,17 +133,19 @@ export default function ScheduleManagementPage() {
       setShowLeaveForm(false);
       setLForm(initLeave);
       loadLeaves();
-    } catch { toast.error('Failed to record leave.'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to record leave.'); }
     finally { setSaving(false); }
   };
 
   const handleDeleteLeave = async (id) => {
-    await scheduleApi.deleteLeave(id);
-    toast.success('Leave removed.');
-    loadLeaves();
+    try {
+      await scheduleApi.deleteLeave(id);
+      toast.success('Leave removed.');
+      loadLeaves();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to remove leave.'); }
   };
 
-  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 
   return (
     <AppLayout title="Schedule Management">

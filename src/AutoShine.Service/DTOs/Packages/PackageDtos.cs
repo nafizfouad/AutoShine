@@ -22,7 +22,8 @@ public record CreatePackageDto(
     string Description,
     decimal Price,
     int EstimatedDurationMinutes,
-    List<CreatePackageItemDto> Items
+    List<CreatePackageItemDto> Items,
+    bool IsActive = true
 );
 
 public record CreatePackageItemDto(

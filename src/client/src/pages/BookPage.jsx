@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { packagesApi, bookingsApi } from '../api/services';
 import AppLayout from '../components/AppLayout';
@@ -11,6 +11,9 @@ const STEPS = ['Service', 'Date', 'Time & Staff', 'Confirm'];
 
 const fmt = (dt) => new Date(dt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const fmtDate = (dt) => new Date(dt).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+// The API expects the calendar day the customer picked (yyyy-MM-dd), not a UTC timestamp.
+const toDateParam = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export default function BookPage() {
   const [params] = useSearchParams();
@@ -38,13 +41,13 @@ export default function BookPage() {
         if (pre) { setSelectedPackage(pre); setStep(1); }
       }
     });
-  }, []);
+  }, [params]);
 
   useEffect(() => {
     if (!selectedDate || !selectedPackage) return;
     setSlots([]); setSelectedSlot(null); setSelectedEmployee(null);
     setLoadingSlots(true);
-    bookingsApi.getAvailableSlots(selectedPackage.id, selectedDate.toISOString())
+    bookingsApi.getAvailableSlots(selectedPackage.id, toDateParam(selectedDate))
       .then(r => setSlots(r.data.data || []))
       .catch(() => setSlots([]))
       .finally(() => setLoadingSlots(false));
@@ -95,13 +98,13 @@ export default function BookPage() {
       {/* Step indicator */}
       <div className="wizard-steps">
         {STEPS.map((label, i) => (
-          <>
-            <div key={label} className={`wizard-step ${stepClass(i)}`}>
+          <Fragment key={label}>
+            <div className={`wizard-step ${stepClass(i)}`}>
               <div className="wizard-step-num">{i < step ? '✓' : i + 1}</div>
               <span className="wizard-step-label">{label}</span>
             </div>
-            {i < STEPS.length - 1 && <div key={`div-${i}`} className={`wizard-divider ${i < step ? 'done' : ''}`} />}
-          </>
+            {i < STEPS.length - 1 && <div className={`wizard-divider ${i < step ? 'done' : ''}`} />}
+          </Fragment>
         ))}
       </div>
 
@@ -146,7 +149,7 @@ export default function BookPage() {
             <Calendar
               selected={selectedDate}
               onChange={setSelectedDate}
-              disabledDays={[0, 6]}
+              disabledDays={[]}
               minDate={new Date()}
             />
           </div>
@@ -191,7 +194,7 @@ export default function BookPage() {
             <div className="empty-state">
               <div className="empty-icon">📅</div>
               <h3>No Available Slots</h3>
-              <p>Try a different date — weekdays only, 9 AM – 5 PM (break: 1–2 PM)</p>
+              <p>No staff are available on this date for this service. Try a different date.</p>
               <button className="btn btn-secondary" style={{ marginTop: 16 }} onClick={() => setStep(1)}>Change Date</button>
             </div>
           )}

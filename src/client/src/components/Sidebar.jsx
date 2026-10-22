@@ -27,13 +27,17 @@ const customerNav = [
   { label: 'My Bookings', icon: Calendar, path: '/bookings' },
 ];
 
-export default function Sidebar({ isOpen, onToggle }) {
+export default function Sidebar({ isOpen }) {
   const { user, logout, isAdmin, isEmployee } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const nav = isAdmin ? adminNav : isEmployee ? employeeNav : customerNav;
-  const initials = user ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() : '?';
+  const [fallbackFirst = '', ...fallbackRest] = (user?.fullName ?? '').split(' ');
+  const firstName = user?.firstName ?? fallbackFirst;
+  const lastName = user?.lastName ?? fallbackRest.join(' ');
+  const displayName = `${firstName} ${lastName}`.trim();
+  const initials = user ? `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || '?' : '?';
 
   return (
     <aside className={`sidebar${isOpen ? '' : ' sidebar-collapsed'}`}>
@@ -63,12 +67,12 @@ export default function Sidebar({ isOpen, onToggle }) {
           id="nav-profile"
           className={`user-chip-btn${!isOpen ? ' user-chip-btn-collapsed' : ''}`}
           onClick={() => navigate('/profile')}
-          title={isOpen ? 'View/edit profile' : `${user?.firstName} ${user?.lastName}`}
+          title={isOpen ? 'View/edit profile' : displayName}
         >
           <div className="user-avatar">{initials}</div>
           {isOpen && (
             <div className="user-info">
-              <div className="user-name">{user?.firstName} {user?.lastName}</div>
+              <div className="user-name">{displayName}</div>
               <div className="user-role">{user?.role}</div>
             </div>
           )}

@@ -42,6 +42,9 @@ public class ReviewService : IReviewService
         if (booking.Status != BookingStatus.Completed)
             throw new InvalidOperationException("You can only review completed bookings.");
 
+        if (booking.EmployeeId is not int employeeId)
+            throw new InvalidOperationException("This booking has no assigned employee to review.");
+
         var existing = await _unitOfWork.Reviews.GetReviewByBookingAsync(dto.BookingId);
         if (existing != null)
             throw new InvalidOperationException("A review for this booking already exists.");
@@ -49,13 +52,17 @@ public class ReviewService : IReviewService
         if (dto.Rating < 1 || dto.Rating > 5)
             throw new ArgumentException("Rating must be between 1 and 5.");
 
+        var comment = string.IsNullOrWhiteSpace(dto.Comment) ? null : dto.Comment.Trim();
+        if (comment?.Length > 1000)
+            throw new ArgumentException("Comment must be at most 1000 characters.");
+
         var review = new Review
         {
             BookingId = dto.BookingId,
             CustomerId = customerId,
-            EmployeeId = dto.EmployeeId,
+            EmployeeId = employeeId,
             Rating = dto.Rating,
-            Comment = dto.Comment
+            Comment = comment
         };
 
         await _unitOfWork.Reviews.AddAsync(review);

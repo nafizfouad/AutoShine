@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react';
 import AppLayout from '../components/AppLayout';
 import { PageLoader, EmptyState, Pagination, ConfirmModal } from '../components/UI';
 import { usersApi } from '../api/services';
+import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/UI';
 import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const ROLES = ['Admin', 'Employee', 'Customer'];
 
-const EMPTY_FORM = { firstName: '', lastName: '', email: '', password: '', phone: '', role: 'Employee' };
+const EMPTY_FORM = { firstName: '', lastName: '', email: '', password: '', phone: '', role: 'Employee', isActive: true };
 
 export default function UsersPage() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -40,7 +42,7 @@ export default function UsersPage() {
 
   const openCreate = () => { setForm(EMPTY_FORM); setEditUser(null); setModal('create'); };
   const openEdit = (u) => {
-    setForm({ firstName: u.firstName, lastName: u.lastName, email: u.email, password: '', phone: u.phone, role: u.role });
+    setForm({ firstName: u.firstName, lastName: u.lastName, email: u.email, password: '', phone: u.phone || '', role: u.role, isActive: u.isActive });
     setEditUser(u);
     setModal('edit');
   };
@@ -53,7 +55,10 @@ export default function UsersPage() {
         await usersApi.create(form);
         toast.success('User created.');
       } else {
-        await usersApi.update(editUser.id, { firstName: form.firstName, lastName: form.lastName, phone: form.phone, isActive: true });
+        await usersApi.update(editUser.id, {
+          firstName: form.firstName, lastName: form.lastName, email: form.email,
+          phone: form.phone, role: form.role, isActive: form.isActive,
+        });
         toast.success('User updated.');
       }
       setModal(null);
@@ -70,8 +75,9 @@ export default function UsersPage() {
       toast.success('User deactivated.');
       setDeleteTarget(null);
       load(page);
-    } catch { toast.error('Delete failed.'); }
-    finally { setDeleting(false); }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Delete failed.');
+    } finally { setDeleting(false); }
   };
 
   return (
@@ -111,7 +117,9 @@ export default function UsersPage() {
                       <td>
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button className="btn btn-sm btn-secondary" onClick={() => openEdit(u)}><Pencil size={13} /></button>
-                          <button className="btn btn-sm btn-danger" onClick={() => setDeleteTarget(u.id)}><Trash2 size={13} /></button>
+                          {u.isActive && u.id !== currentUser?.userId && (
+                            <button className="btn btn-sm btn-danger" onClick={() => setDeleteTarget(u.id)} title="Deactivate"><Trash2 size={13} /></button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -135,15 +143,26 @@ export default function UsersPage() {
                 <div className="form-group"><label className="form-label">First Name</label><input className="form-control" value={form.firstName} onChange={set('firstName')} required /></div>
                 <div className="form-group"><label className="form-label">Last Name</label><input className="form-control" value={form.lastName} onChange={set('lastName')} required /></div>
               </div>
-              {modal === 'create' && <>
-                <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={form.email} onChange={set('email')} required /></div>
-                <div className="form-group"><label className="form-label">Password</label><input className="form-control" type="password" value={form.password} onChange={set('password')} required /></div>
-                <div className="form-group"><label className="form-label">Role</label>
-                  <select className="form-control" value={form.role} onChange={set('role')}>
-                    {ROLES.map((r) => <option key={r}>{r}</option>)}
-                  </select>
+              <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" value={form.email} onChange={set('email')} required /></div>
+              {modal === 'create' && (
+                <div className="form-group"><label className="form-label">Password</label><input className="form-control" type="password" value={form.password} onChange={set('password')} required minLength={8} placeholder="Min 8 characters" /></div>
+              )}
+              <div className="form-group"><label className="form-label">Role</label>
+                <select className="form-control" value={form.role} onChange={set('role')}
+                  disabled={modal === 'edit' && editUser?.id === currentUser?.userId}>
+                  {ROLES.map((r) => <option key={r}>{r}</option>)}
+                </select>
+              </div>
+              {modal === 'edit' && (
+                <div className="form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.isActive}
+                      disabled={editUser?.id === currentUser?.userId}
+                      onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
+                    Active (can sign in)
+                  </label>
                 </div>
-              </>}
+              )}
               <div className="form-group"><label className="form-label">Phone</label><input className="form-control" value={form.phone} onChange={set('phone')} required /></div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>Cancel</button>

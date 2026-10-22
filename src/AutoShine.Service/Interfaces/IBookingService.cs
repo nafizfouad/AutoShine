@@ -11,7 +11,7 @@ public interface IBookingService
     Task<IEnumerable<BookingDto>> GetEmployeeBookingsAsync(int employeeId);
     Task<BookingDto?> GetBookingByIdAsync(int bookingId);
     Task<BookingDto> CreateBookingAsync(int customerId, CreateBookingDto dto);
-    Task<BookingDto?> UpdateBookingStatusAsync(int bookingId, BookingStatus newStatus, int actorUserId);
-    Task<bool> CancelBookingAsync(int bookingId, int actorUserId);
+    Task<BookingDto?> UpdateBookingStatusAsync(int bookingId, BookingStatus newStatus, int actorUserId, UserRole actorRole);
+    Task<bool> CancelBookingAsync(int bookingId, int actorUserId, UserRole actorRole);
     Task<IEnumerable<AvailableSlotDto>> GetAvailableSlotsAsync(AvailableSlotsRequestDto request);
 }

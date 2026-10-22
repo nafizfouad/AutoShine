@@ -93,8 +93,9 @@ export default function InventoryPage() {
       toast.success('Item deleted.');
       setDeleteTarget(null);
       load(page);
-    } catch { toast.error('Delete failed.'); }
-    finally { setDeleting(false); }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Delete failed.');
+    } finally { setDeleting(false); }
   };
 
   return (

@@ -1,5 +1,7 @@
 using AutoShine.Models.Entities;
+using AutoShine.Models.Enums;
 using AutoShine.Repository.Interfaces;
+using AutoShine.Service.Common;
 using AutoShine.Service.DTOs.Schedules;
 using AutoShine.Service.DTOs.Users;
 using AutoShine.Service.Interfaces;
@@ -21,7 +23,7 @@ public class ScheduleService : IScheduleService
 
     public async Task<IEnumerable<ScheduleTemplateDto>> GetAllTemplatesAsync()
     {
-        var employees = await _uow.Users.GetByRoleAsync(AutoShine.Models.Enums.UserRole.Employee);
+        var employees = await _uow.Users.GetByRoleAsync(UserRole.Employee);
         var all = new List<ScheduleTemplateDto>();
         foreach (var emp in employees)
             all.AddRange((await _uow.Schedules.GetTemplatesByEmployeeAsync(emp.Id)).Select(ToTemplateDto));
@@ -30,11 +32,14 @@ public class ScheduleService : IScheduleService
 
     public async Task<ScheduleTemplateDto> CreateTemplateAsync(CreateScheduleTemplateDto dto)
     {
+        await EnsureEmployeeAsync(dto.EmployeeId);
+        ValidateTemplate(dto);
+
         var template = new EmployeeScheduleTemplate
         {
             EmployeeId = dto.EmployeeId,
-            StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
+            StartDate = DateTimeUtil.AsUtcDate(dto.StartDate),
+            EndDate = DateTimeUtil.AsUtcDate(dto.EndDate),
             WorkingDays = dto.WorkingDays,
             WorkStartTime = dto.WorkStartTime,
             WorkEndTime = dto.WorkEndTime,
@@ -44,28 +49,30 @@ public class ScheduleService : IScheduleService
         };
         await _uow.Schedules.AddTemplateAsync(template);
         await _uow.SaveChangesAsync();
-        var saved = (await _uow.Schedules.GetTemplatesByEmployeeAsync(dto.EmployeeId))
-            .First(t => t.Id == template.Id);
-        return ToTemplateDto(saved);
+        var saved = await _uow.Schedules.GetTemplateByIdAsync(template.Id);
+        return ToTemplateDto(saved!);
     }
 
     public async Task<ScheduleTemplateDto?> UpdateTemplateAsync(int id, CreateScheduleTemplateDto dto)
     {
         var t = await _uow.Schedules.GetTemplateByIdAsync(id);
         if (t == null) return null;
+
+        await EnsureEmployeeAsync(dto.EmployeeId);
+        ValidateTemplate(dto);
+
         t.EmployeeId = dto.EmployeeId;
-        t.StartDate = dto.StartDate;
-        t.EndDate = dto.EndDate;
+        t.StartDate = DateTimeUtil.AsUtcDate(dto.StartDate);
+        t.EndDate = DateTimeUtil.AsUtcDate(dto.EndDate);
         t.WorkingDays = dto.WorkingDays;
         t.WorkStartTime = dto.WorkStartTime;
         t.WorkEndTime = dto.WorkEndTime;
         t.BreakStartTime = dto.BreakStartTime;
         t.BreakEndTime = dto.BreakEndTime;
-        _uow.Schedules.UpdateTemplate(t);
         await _uow.SaveChangesAsync();
-        var saved = (await _uow.Schedules.GetTemplatesByEmployeeAsync(t.EmployeeId))
-            .First(s => s.Id == t.Id);
-        return ToTemplateDto(saved);
+
+        var saved = await _uow.Schedules.GetTemplateByIdAsync(t.Id);
+        return ToTemplateDto(saved!);
     }
 
     public async Task<bool> DeleteTemplateAsync(int id)
@@ -85,11 +92,21 @@ public class ScheduleService : IScheduleService
 
     public async Task<LeaveDto> CreateLeaveAsync(CreateLeaveDto dto)
     {
+        await EnsureEmployeeAsync(dto.EmployeeId);
+
+        var date = DateTimeUtil.AsUtcDate(dto.Date);
+        if (await _uow.Schedules.IsOnLeaveAsync(dto.EmployeeId, date))
+            throw new InvalidOperationException("This employee already has leave recorded on that date.");
+
+        var reason = string.IsNullOrWhiteSpace(dto.Reason) ? null : dto.Reason.Trim();
+        if (reason?.Length > 500)
+            throw new ArgumentException("Reason must be at most 500 characters.");
+
         var leave = new EmployeeLeave
         {
             EmployeeId = dto.EmployeeId,
-            Date = dto.Date.Date,
-            Reason = dto.Reason
+            Date = date,
+            Reason = reason
         };
         await _uow.Schedules.AddLeaveAsync(leave);
         await _uow.SaveChangesAsync();
@@ -104,6 +121,29 @@ public class ScheduleService : IScheduleService
         _uow.Schedules.RemoveLeave(l);
         await _uow.SaveChangesAsync();
         return true;
+    }
+
+    private async Task EnsureEmployeeAsync(int employeeId)
+    {
+        var user = await _uow.Users.GetByIdAsync(employeeId);
+        if (user == null || user.Role != UserRole.Employee)
+            throw new ArgumentException("Selected user is not an employee.");
+    }
+
+    private static void ValidateTemplate(CreateScheduleTemplateDto dto)
+    {
+        if (dto.EndDate.Date < dto.StartDate.Date)
+            throw new ArgumentException("End date must be on or after the start date.");
+        if (dto.WorkingDays is < 1 or > 127)
+            throw new ArgumentException("Select at least one working day.");
+        if (dto.WorkStartTime < TimeSpan.Zero || dto.WorkEndTime > TimeSpan.FromHours(24) || dto.WorkStartTime >= dto.WorkEndTime)
+            throw new ArgumentException("Work start time must be before work end time.");
+
+        if (dto.BreakStartTime.HasValue != dto.BreakEndTime.HasValue)
+            throw new ArgumentException("Provide both break start and break end, or neither.");
+        if (dto.BreakStartTime is TimeSpan bs && dto.BreakEndTime is TimeSpan be
+            && (bs >= be || bs < dto.WorkStartTime || be > dto.WorkEndTime))
+            throw new ArgumentException("The break must fall inside working hours and start before it ends.");
     }
 
     private static ScheduleTemplateDto ToTemplateDto(EmployeeScheduleTemplate t) => new(
@@ -128,34 +168,32 @@ public class ProfileService : IProfileService
     {
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null) return null;
-        return new UserDto(user.Id, user.FirstName, user.LastName,
-            user.Email, user.Phone, user.Role.ToString(), user.IsActive);
+        return ToDto(user);
     }
 
     public async Task<UserDto?> UpdateProfileAsync(int userId, UpdateProfileDto dto)
     {
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null) return null;
-        user.FirstName = dto.FirstName.Trim();
-        user.LastName = dto.LastName.Trim();
-        user.Phone = dto.Phone?.Trim();
-        _uow.Users.Update(user);
+        user.FirstName = Validate.Name(dto.FirstName, "First name");
+        user.LastName = Validate.Name(dto.LastName, "Last name");
+        user.Phone = Validate.Phone(dto.Phone, required: false);
         await _uow.SaveChangesAsync();
-        return new UserDto(user.Id, user.FirstName, user.LastName,
-            user.Email, user.Phone, user.Role.ToString(), user.IsActive);
+        return ToDto(user);
     }
 
     public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto dto)
     {
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null) return false;
-        if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+        if (string.IsNullOrEmpty(dto.CurrentPassword) || !BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
             throw new UnauthorizedAccessException("Current password is incorrect.");
-        if (dto.NewPassword.Length < 8)
-            throw new ArgumentException("New password must be at least 8 characters.");
+        Validate.Password(dto.NewPassword);
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
-        _uow.Users.Update(user);
         await _uow.SaveChangesAsync();
         return true;
     }
+
+    private static UserDto ToDto(User user) => new(user.Id, user.FirstName, user.LastName,
+        user.Email, user.Phone, user.Role.ToString(), user.IsActive);
 }

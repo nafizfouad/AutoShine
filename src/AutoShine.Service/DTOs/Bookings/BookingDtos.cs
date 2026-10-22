@@ -38,7 +38,8 @@ public record AvailableSlotDto(
     List<AvailableEmployeeInfo> AvailableEmployees
 );
 
+/// <summary>Date is the calendar day in the shop's time zone.</summary>
 public record AvailableSlotsRequestDto(
     int PackageId,
-    DateTime Date
+    DateOnly Date
 );

@@ -1,6 +1,7 @@
 using AutoShine.Models.Entities;
 using AutoShine.Models.Enums;
 using AutoShine.Repository.Interfaces;
+using AutoShine.Service.Common;
 using AutoShine.Service.DTOs.Auth;
 using AutoShine.Service.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -24,17 +25,23 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
     {
-        var existing = await _unitOfWork.Users.GetByEmailAsync(dto.Email);
+        var firstName = Validate.Name(dto.FirstName, "First name");
+        var lastName = Validate.Name(dto.LastName, "Last name");
+        var email = Validate.Email(dto.Email);
+        var phone = Validate.Phone(dto.Phone, required: true);
+        Validate.Password(dto.Password);
+
+        var existing = await _unitOfWork.Users.GetByEmailAsync(email);
         if (existing != null)
             throw new InvalidOperationException("Email is already registered.");
 
         var user = new User
         {
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
-            Email = dto.Email.ToLower(),
+            FirstName = firstName,
+            LastName = lastName,
+            Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            Phone = dto.Phone,
+            Phone = phone,
             Role = UserRole.Customer
         };
 
@@ -46,6 +53,9 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
     {
+        if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrEmpty(dto.Password))
+            throw new UnauthorizedAccessException("Invalid email or password.");
+
         var user = await _unitOfWork.Users.GetByEmailAsync(dto.Email);
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             throw new UnauthorizedAccessException("Invalid email or password.");
@@ -65,6 +75,8 @@ public class AuthService : IAuthService
         return new AuthResponseDto(
             token,
             user.Email,
+            user.FirstName,
+            user.LastName,
             $"{user.FirstName} {user.LastName}",
             user.Role.ToString(),
             user.Id,

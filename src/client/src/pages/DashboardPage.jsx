@@ -3,7 +3,7 @@ import AppLayout from '../components/AppLayout';
 import { PageLoader, StatusBadge, EmptyState } from '../components/UI';
 import { bookingsApi, inventoryApi, usersApi, packagesApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
-import { Users, Calendar, Archive, Star, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Users, Calendar, AlertTriangle, TrendingUp } from 'lucide-react';
 
 // ── Admin Dashboard ────────────────────────────────────────────────────────
 function AdminDashboard() {
@@ -25,7 +25,7 @@ function AdminDashboard() {
           users: usersRes.data.data.totalCount,
           bookings: bookingsRes.data.data.totalCount,
           lowStock: alertsRes.data.data.length,
-          packages: pkgRes.data.data.length,
+          packages: pkgRes.data.data.filter((p) => p.isActive).length,
         });
         setAlerts(alertsRes.data.data.slice(0, 5));
         setRecentBookings(bookingsRes.data.data.items || []);
@@ -105,7 +105,6 @@ function AdminDashboard() {
 function EmployeeDashboard() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   useEffect(() => {
     bookingsApi.getMy().then((res) => {
@@ -170,7 +169,6 @@ function EmployeeDashboard() {
 function CustomerDashboard() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   useEffect(() => {
     bookingsApi.getMy().then((res) => setBookings(res.data.data || []))

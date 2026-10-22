@@ -24,6 +24,8 @@ public record CreateUserDto(
 public record UpdateUserDto(
     string FirstName,
     string LastName,
+    string Email,
     string Phone,
+    UserRole Role,
     bool IsActive
 );

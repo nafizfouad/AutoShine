@@ -15,6 +15,7 @@ public interface IScheduleRepository
     // Leaves
     Task<IEnumerable<EmployeeLeave>> GetLeavesByEmployeeAsync(int employeeId);
     Task<bool> IsOnLeaveAsync(int employeeId, DateTime date);
+    Task<HashSet<int>> GetEmployeeIdsOnLeaveAsync(DateTime date);
     Task AddLeaveAsync(EmployeeLeave leave);
     void RemoveLeave(EmployeeLeave leave);
     Task<EmployeeLeave?> GetLeaveByIdAsync(int id);

@@ -9,7 +9,7 @@ export default function AppLayout({ children, title }) {
 
   return (
     <div className="app-layout">
-      <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(o => !o)} />
+      <Sidebar isOpen={sidebarOpen} />
       <div className="main-content">
         <header className="topbar">
           <button

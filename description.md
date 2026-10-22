@@ -1,4 +1,4 @@
-# AutoShine — System Workflow Documentation
+# AutoShine ï¿½ System Workflow Documentation
 
 AutoShine is a car-washing and auto-detailing management platform with three distinct user roles: **Admin**, **Employee**, and **Customer**. This document describes every workflow each role can perform.
 
@@ -106,11 +106,11 @@ Leave Days (One-off Absence):
 - View all active packages with name, description, price, duration, and materials.
 - Click Book This to jump to the booking wizard with that package pre-selected.
 
-### 4.3 Book a Service (/book) — 4-step wizard
-Step 1 — Service: choose a package.
-Step 2 — Date: pick a date from the calendar.
-Step 3 — Time and Staff: see available slots for the chosen date and package; each slot shows available employees. Pick a preferred employee or No Preference for auto-assign.
-Step 4 — Confirm: review the full summary and add optional notes, then confirm. Booking is created as Pending.
+### 4.3 Book a Service (/book) ï¿½ 4-step wizard
+Step 1 ï¿½ Service: choose a package.
+Step 2 ï¿½ Date: pick a date from the calendar.
+Step 3 ï¿½ Time and Staff: see available slots for the chosen date and package; each slot shows available employees. Pick a preferred employee or No Preference for auto-assign.
+Step 4 ï¿½ Confirm: review the full summary and add optional notes, then confirm. Booking is created as Pending.
 
 ### 4.4 My Bookings (/bookings)
 - View all own bookings, filterable by status.
@@ -181,3 +181,4 @@ When a customer picks a date and package, available time slots are computed:
 | Manage schedules and leaves  |  YES  |    -     |    -     |
 | Moderate reviews             |  YES  |    -     |    -     |
 | View admin dashboard stats   |  YES  |    -     |    -     |
+git 

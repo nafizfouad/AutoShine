@@ -7,6 +7,7 @@ public interface IBookingRepository : IGenericRepository<Booking>
 {
     Task<IEnumerable<Booking>> GetBookingsByCustomerAsync(int customerId);
     Task<IEnumerable<Booking>> GetBookingsByEmployeeAsync(int employeeId);
+    /// <summary>Bookings whose time span overlaps [start, end).</summary>
     Task<IEnumerable<Booking>> GetBookingsByDateRangeAsync(DateTime start, DateTime end);
     Task<IEnumerable<Booking>> GetBookingsByStatusAsync(BookingStatus status);
     Task<Booking?> GetBookingWithDetailsAsync(int bookingId);

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AppLayout from '../components/AppLayout';
 import { PageLoader, EmptyState, ConfirmModal } from '../components/UI';
 import { packagesApi, inventoryApi } from '../api/services';
-import { Plus, Pencil, Trash2, Clock, DollarSign } from 'lucide-react';
+import { Plus, Pencil, Trash2, Clock, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const EMPTY_FORM = { name: '', description: '', price: '', estimatedDurationMinutes: '', isActive: true, items: [] };
@@ -34,7 +34,7 @@ export default function PackagesPage() {
 
   const addItem = () => setForm((f) => ({ ...f, items: [...f.items, { inventoryItemId: inventory[0]?.id || 0, quantityRequired: 1 }] }));
   const removeItem = (i) => setForm((f) => ({ ...f, items: f.items.filter((_, idx) => idx !== i) }));
-  const setItem = (i, k, v) => setForm((f) => ({ ...f, items: f.items.map((it, idx) => idx === i ? { ...it, [k]: k === 'quantityRequired' ? Number(v) : Number(v) } : it) }));
+  const setItem = (i, k, v) => setForm((f) => ({ ...f, items: f.items.map((it, idx) => idx === i ? { ...it, [k]: Number(v) } : it) }));
 
   const openCreate = () => { setForm(EMPTY_FORM); setEditId(null); setModal('form'); };
   const openEdit = (pkg) => {
@@ -62,6 +62,18 @@ export default function PackagesPage() {
     } finally { setSaving(false); }
   };
 
+  const handleActivate = async (pkg) => {
+    try {
+      await packagesApi.update(pkg.id, {
+        name: pkg.name, description: pkg.description, price: pkg.price,
+        estimatedDurationMinutes: pkg.estimatedDurationMinutes, isActive: true,
+        items: pkg.items.map((i) => ({ inventoryItemId: i.inventoryItemId, quantityRequired: i.quantityRequired })),
+      });
+      toast.success('Package activated.');
+      load();
+    } catch (err) { toast.error(err.response?.data?.message || 'Activation failed.'); }
+  };
+
   const handleDelete = async () => {
     setDeleting(true);
     try {
@@ -69,7 +81,7 @@ export default function PackagesPage() {
       toast.success('Package deactivated.');
       setDeleteTarget(null);
       load();
-    } catch { toast.error('Delete failed.'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Deactivation failed.'); }
     finally { setDeleting(false); }
   };
 
@@ -110,7 +122,11 @@ export default function PackagesPage() {
                 )}
                 <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                   <button className="btn btn-sm btn-secondary" onClick={() => openEdit(pkg)}><Pencil size={13} /> Edit</button>
-                  <button className="btn btn-sm btn-danger" onClick={() => setDeleteTarget(pkg.id)}><Trash2 size={13} /></button>
+                  {pkg.isActive ? (
+                    <button className="btn btn-sm btn-danger" onClick={() => setDeleteTarget(pkg.id)} title="Deactivate"><Trash2 size={13} /></button>
+                  ) : (
+                    <button className="btn btn-sm btn-success" onClick={() => handleActivate(pkg)} title="Activate"><RotateCcw size={13} /> Activate</button>
+                  )}
                 </div>
               </div>
             ))}
@@ -128,10 +144,17 @@ export default function PackagesPage() {
               <div className="form-group"><label className="form-label">Package Name</label><input className="form-control" value={form.name} onChange={set('name')} required /></div>
               <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" value={form.description} onChange={set('description')} /></div>
               <div className="form-row">
-                <div className="form-group"><label className="form-label">Price ($)</label><input className="form-control" type="number" step="0.01" value={form.price} onChange={set('price')} required /></div>
-                <div className="form-group"><label className="form-label">Duration (min)</label><input className="form-control" type="number" value={form.estimatedDurationMinutes} onChange={set('estimatedDurationMinutes')} required /></div>
+                <div className="form-group"><label className="form-label">Price ($)</label><input className="form-control" type="number" step="0.01" min="0" value={form.price} onChange={set('price')} required /></div>
+                <div className="form-group"><label className="form-label">Duration (min)</label><input className="form-control" type="number" min="1" max="1440" value={form.estimatedDurationMinutes} onChange={set('estimatedDurationMinutes')} required /></div>
               </div>
 
+              <div className="form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={form.isActive}
+                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
+                  Active (visible to customers)
+                </label>
+              </div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <label className="form-label" style={{ marginBottom: 0 }}>Recipe Items</label>

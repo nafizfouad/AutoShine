@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { bookingsApi, reviewsApi } from '../api/services';
-import { useAuth } from '../context/AuthContext';
+import { reviewsApi } from '../api/services';
 import toast from 'react-hot-toast';
 
 function StarPicker({ value, onChange }) {
@@ -49,7 +48,6 @@ export default function ReviewModal({ booking, onClose, onSubmitted }) {
     try {
       await reviewsApi.create({
         bookingId: booking.id,
-        employeeId: booking.employeeId,
         rating,
         comment,
       });
