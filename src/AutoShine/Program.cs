@@ -10,6 +10,7 @@ using MapsterMapper;
 using AutoShine.Service.Mappings;
 using AutoShine.Service.Common;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -17,6 +18,11 @@ using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Hosting platforms (Render, Koyeb, Cloud Run, ...) tell the app which port to listen on via PORT.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 // ─── Configuration ─────────────────────────────────────────────────────────
 // Secrets live in appsettings.json locally (git-ignored; copy appsettings.example.json)
@@ -106,15 +112,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// ─── CORS (for React frontend) ─────────────────────────────────────────────
+// ─── CORS ──────────────────────────────────────────────────────────────────
+// Only needed when the frontend is served from a different origin than the API.
+// The Docker image serves both from one origin.
+var corsOrigins = (config["Cors:AllowedOrigins"] ?? "http://localhost:5173,http://localhost:3000")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactClient", policy =>
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.WithOrigins(corsOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials());
 });
+
+// ─── Reverse proxy & health ────────────────────────────────────────────────
+// Hosting platforms terminate TLS at their proxy; trust its X-Forwarded-* headers.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+builder.Services.AddHealthChecks();
 
 // ─── Controllers & Swagger ─────────────────────────────────────────────────
 builder.Services.AddControllers()
@@ -173,6 +193,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ─── Middleware Pipeline ───────────────────────────────────────────────────
+app.UseForwardedHeaders();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -186,9 +207,26 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// The Docker image puts the built React app in wwwroot; `dotnet run` alone serves only the API.
+var serveSpa = Directory.Exists(app.Environment.WebRootPath);
+if (serveSpa)
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
+
 app.UseCors("ReactClient");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
+
+if (serveSpa)
+{
+    // Unknown API routes stay 404; every other path is a client-side route of the React app.
+    app.MapFallback("/api/{**path}", () => Results.NotFound());
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();
