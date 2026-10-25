@@ -1,0 +1,22 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/TestResults/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+.git/
+.gitignore
+.env
+.env.*
+Dockerfile
+docker-compose*.yml
+**/*.md
+
+# Local configuration; containers are configured through environment variables
+src/AutoShine/appsettings.json
+src/AutoShine/appsettings.*.local.json
+src/AutoShine/appsettings.example.json
+src/AutoShine/Properties/launchSettings.json
