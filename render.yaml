@@ -1,0 +1,26 @@
+# Render Blueprint — deploys the AutoShine Docker image as a free web service.
+# See DEPLOYMENT.md. Values marked `sync: false` are entered in the Render dashboard
+# when the Blueprint is first created.
+services:
+  - type: web
+    name: autoshine
+    runtime: docker
+    plan: free
+    # Pick the region closest to your users and to your Neon database (cannot be changed later):
+    # oregon | ohio | virginia | frankfurt | singapore
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Jwt__SecretKey
+        generateValue: true
+      - key: Seed__AdminEmail
+        sync: false
+      - key: Seed__AdminPassword
+        sync: false
+      - key: Shop__TimeZone
+        sync: false
