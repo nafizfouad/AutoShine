@@ -1,136 +1,134 @@
-# AutoShine — Auto Repair & Car Wash Management System (ARWMS)
+# AutoShine — Auto Repair & Car Wash Management System
 
-A full-stack web application for managing daily operations of an auto repair and car wash shop.
-See [description.md](description.md) for every workflow per role (Admin, Employee, Customer).
+A full-stack web application for managing the daily operations of an auto repair and car wash shop:
+service packages, online booking with staff scheduling, inventory tracking, and customer reviews.
+
+- [description.md](description.md) — workflows for each role (Admin, Employee, Customer)
+- [DEPLOYMENT.md](DEPLOYMENT.md) — free cloud deployment with Docker, Render and Neon
 
 ## Architecture
 
 ```
 AutoShine.sln
-├── src/AutoShine.Models       → Domain entities & enums (Class Library)
-├── src/AutoShine.Data         → EF Core DbContext, Configurations, Migrations, Seeder
-├── src/AutoShine.Repository   → Repository interfaces & implementations, Unit of Work
-├── src/AutoShine.Service      → DTOs, Mapster mappings, service interfaces & implementations
+├── src/AutoShine.Models       → Domain entities & enums
+├── src/AutoShine.Data         → EF Core DbContext, configurations, migrations, seeder
+├── src/AutoShine.Repository   → Repositories & Unit of Work
+├── src/AutoShine.Service      → DTOs, Mapster mappings, business services
 ├── src/AutoShine              → ASP.NET Core Web API (controllers, middleware, Program.cs)
-├── src/AutoShine.UnitTests    → xUnit tests (services & repositories, EF Core InMemory)
+├── src/AutoShine.UnitTests    → xUnit tests (EF Core InMemory)
 └── src/client                 → React + Vite frontend
 ```
 
-### Dependency Flow (Backend)
+Backend dependency flow:
 ```
 AutoShine (API) → AutoShine.Service → AutoShine.Repository → AutoShine.Data → AutoShine.Models
 ```
+
+The Docker image bundles the built React app into the API's `wwwroot`, so the application runs as a
+single container serving both the UI and `/api` from one origin.
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Backend | ASP.NET Core Web API (.NET 9) |
-| ORM | Entity Framework Core 8 + PostgreSQL (Npgsql) |
-| Auth | JWT Bearer Tokens (RBAC: Admin / Employee / Customer) |
-| Passwords | BCrypt.Net |
+| ORM / Database | Entity Framework Core 8 + PostgreSQL (Npgsql) |
+| Auth | JWT bearer tokens, role-based (Admin / Employee / Customer) |
+| Passwords | BCrypt |
 | Mapping | Mapster |
-| API Docs | Swagger / OpenAPI (Development only) |
-| Frontend | React 19 + Vite |
-| Routing | React Router 7 |
-| HTTP Client | Axios (with JWT interceptor) |
-| Notifications | react-hot-toast |
-| Icons | lucide-react |
-
-## Getting Started
-
-### Prerequisites
-- .NET 9 SDK
-- PostgreSQL 14+ (local install, Docker, or a hosted service such as Neon)
-- Node.js 20+
+| API docs | Swagger / OpenAPI (Development environment) |
+| Frontend | React 19, Vite, React Router 7, Axios, react-hot-toast, lucide-react |
+| Container | Docker (multi-stage build), Docker Compose |
 
 ---
 
-### 1. Configure (local development)
+## Configuration
 
-Local settings, **including secrets**, live in `src/AutoShine/appsettings.json`.
-That file is **git-ignored** — create it from the committed template:
-
-```bash
-cp src/AutoShine/appsettings.example.json src/AutoShine/appsettings.json
-```
-
-Then fill in:
+Settings are read from `src/AutoShine/appsettings.json` and environment variables (environment
+variables take precedence). In environment variables, `:` becomes `__`, e.g. `Jwt:SecretKey` → `Jwt__SecretKey`.
 
 | Setting | Required | Description |
 |---------|:--------:|-------------|
 | `ConnectionStrings:DefaultConnection` | ✅ | PostgreSQL connection string, e.g. `Host=localhost;Port=5432;Database=autoshine;Username=postgres;Password=...` |
-| `Jwt:SecretKey` | ✅ | Random string, **at least 32 characters**. Tokens are signed with it. |
+| `Jwt:SecretKey` | ✅ | Token signing key, at least 32 characters |
 | `Jwt:Issuer` / `Jwt:Audience` / `Jwt:ExpiryHours` | | Defaults: `AutoShine.API` / `AutoShine.Client` / `24` |
-| `Seed:AdminEmail` / `Seed:AdminPassword` | first run | Creates the first admin account if none exists (password min. 8 characters). |
-| `Seed:DemoUsers` / `Seed:DemoPassword` | | Development only: creates two demo employees and a demo customer sharing `DemoPassword`. |
-| `Shop:TimeZone` | | Time zone that schedule hours are in, e.g. `Asia/Dhaka`. Empty = the server's local time zone. |
+| `Seed:AdminEmail` / `Seed:AdminPassword` | first run | Creates the first Admin account when none exists (password min. 8 characters) |
+| `Seed:DemoUsers` / `Seed:DemoPassword` | | Development environment only: creates demo employees and a demo customer |
+| `Shop:TimeZone` | | Time zone of the shop's working hours (IANA id, e.g. `Asia/Dhaka`). Default: the server's time zone |
+| `Cors:AllowedOrigins` | | Comma-separated origins allowed to call the API from another domain. Default: `http://localhost:5173,http://localhost:3000` |
+| `PORT` (env var) | | Port to listen on, as set by most hosting platforms. Docker default: `8080` |
 
-The API refuses to start with a clear error if the connection string or JWT key is missing.
-
-> **Never commit real secrets.** `appsettings.json` is ignored by git; only `appsettings.example.json` (placeholders) is tracked.
+`src/AutoShine/appsettings.example.json` contains the full structure with placeholder values.
+The app stops at startup with an explanatory error if the connection string or JWT key is missing.
 
 ---
 
-### 2. Start the .NET API
+## Running with Docker (recommended)
 
-Migrations and seed data apply automatically on startup.
+Prerequisite: Docker with Compose.
 
+```bash
+cp .env.example .env          # fill in POSTGRES_PASSWORD, JWT_SECRET_KEY, SEED_ADMIN_PASSWORD, ...
+docker compose up --build
+```
+
+- App (UI + API): **http://localhost:8080**
+- Health check: **http://localhost:8080/health**
+
+Compose starts PostgreSQL and the app. Database migrations and seed data are applied automatically on
+startup. Data is kept in the `pgdata` volume; `docker compose down -v` removes it.
+
+To build and run the image on its own (e.g. against an external database):
+
+```bash
+docker build -t autoshine .
+docker run -p 8080:8080 \
+  -e ConnectionStrings__DefaultConnection="Host=...;Database=...;Username=...;Password=..." \
+  -e Jwt__SecretKey="..." \
+  -e Seed__AdminEmail="admin@example.com" -e Seed__AdminPassword="..." \
+  autoshine
+```
+
+---
+
+## Running locally without Docker
+
+Prerequisites: .NET 9 SDK, Node.js 20+, and a PostgreSQL 14+ database.
+
+**1. Configure** — copy the template and fill in the values:
+```bash
+cp src/AutoShine/appsettings.example.json src/AutoShine/appsettings.json
+```
+
+**2. Start the API** (migrations and seeding run on startup):
 ```bash
 cd src/AutoShine
 dotnet run
 ```
+API: **http://localhost:5200** · Swagger: **http://localhost:5200/swagger**
 
-API runs at: **http://localhost:5200**
-Swagger UI: **http://localhost:5200/swagger**
-
----
-
-### 3. Start the React frontend
-
+**3. Start the frontend:**
 ```bash
 cd src/client
 npm install
 npm run dev
 ```
+App: **http://localhost:5173** (requests to `/api` are proxied to the API)
 
-App runs at: **http://localhost:5173**
-(API calls to `/api` are proxied to `http://localhost:5200`.)
-
----
-
-### 4. Run the tests
-
+**4. Run the tests:**
 ```bash
 dotnet test
 ```
 
 ---
 
-## Production configuration (environment variables)
-
-In production, don't deploy an `appsettings.json` with secrets — set **environment variables** instead.
-ASP.NET Core maps `__` (double underscore) to the `:` separator, and environment variables override any
-`appsettings*.json` values.
-
-| Environment variable | Required | Example |
-|----------------------|:--------:|---------|
-| `ConnectionStrings__DefaultConnection` | ✅ | `Host=...;Database=...;Username=...;Password=...;SSL Mode=Require` |
-| `Jwt__SecretKey` | ✅ | 32+ random characters |
-| `Seed__AdminEmail` | first deploy | `admin@yourshop.com` |
-| `Seed__AdminPassword` | first deploy | strong password (remove it after the admin exists and change it in the app) |
-| `Shop__TimeZone` | recommended | `Asia/Dhaka` |
-| `ASPNETCORE_ENVIRONMENT` | | `Production` (default) — demo accounts are never created outside Development |
-| `Jwt__Issuer`, `Jwt__Audience`, `Jwt__ExpiryHours` | | optional overrides |
-
-Also update the CORS origins in `Program.cs` (`ReactClient` policy) to your production frontend URL.
-
 ## Seed Data
 
-- **Inventory items and service packages** are always seeded into an empty database.
-- **Admin account**: created from `Seed:AdminEmail` / `Seed:AdminPassword` only when no admin exists yet.
-  If they aren't set, a warning is logged and no admin is created.
-- **Demo accounts** (Development only, when `Seed:DemoUsers` is `true` and `Seed:DemoPassword` is set):
+- **Inventory items and service packages** are seeded into an empty database.
+- **Admin account** — created from `Seed:AdminEmail` / `Seed:AdminPassword` when no Admin exists.
+  Otherwise a warning is logged at startup.
+- **Demo accounts** — only in the Development environment, when `Seed:DemoUsers` is `true` and
+  `Seed:DemoPassword` is set. They all use `Seed:DemoPassword`:
 
   | Role | Email |
   |------|-------|
@@ -138,12 +136,10 @@ Also update the CORS origins in `Program.cs` (`ReactClient` policy) to your prod
   | Employee | sarah.washer@autoshine.com |
   | Customer | alice@example.com |
 
-  Demo employees get a Mon–Fri 09:00–17:00 schedule (break 13:00–14:00) valid for five years from the
-  start of the current year. Passwords are whatever you put in `Seed:DemoPassword` — no passwords are
-  stored in this repository.
+  Demo employees get a Mon–Fri 09:00–17:00 schedule with a 13:00–14:00 break, valid for five years
+  from the start of the current year.
 
-> Seeding never changes existing accounts. If a database was seeded by an older version of this project
-> (which used hard-coded passwords), change those accounts' passwords from the Profile page or deactivate them.
+Seeding never modifies existing accounts.
 
 ---
 
@@ -154,7 +150,7 @@ Also update the CORS origins in `Program.cs` (`ReactClient` policy) to your prod
 | Login | `/login` | Public |
 | Register | `/register` | Public |
 | Dashboard | `/dashboard` | All roles (role-specific view) |
-| Bookings | `/bookings` | All roles (Admin: all bookings; Employee: assigned; Customer: own) |
+| Bookings | `/bookings` | All roles (Admin: all; Employee: assigned; Customer: own) |
 | Profile | `/profile` | All roles |
 | Browse Services | `/services` | Customer |
 | Book a Service | `/book` | Customer |
@@ -168,7 +164,7 @@ Also update the CORS origins in `Program.cs` (`ReactClient` policy) to your prod
 
 ## API Endpoints
 
-All responses use the envelope `{ success, message, data, errors }`.
+Responses use the envelope `{ success, message, data, errors }`.
 
 ### Auth
 | Method | Endpoint | Access |
@@ -189,13 +185,13 @@ All responses use the envelope `{ success, message, data, errors }`.
 | GET | `/api/users?page&pageSize&role&search` | Admin |
 | GET | `/api/users/{id}` | Admin |
 | POST | `/api/users` | Admin |
-| PUT | `/api/users/{id}` | Admin (cannot deactivate/demote self) |
-| DELETE | `/api/users/{id}` (deactivate) | Admin (cannot deactivate self) |
+| PUT | `/api/users/{id}` | Admin (not own deactivation/demotion) |
+| DELETE | `/api/users/{id}` (deactivate) | Admin (not self) |
 
 ### Packages
 | Method | Endpoint | Access |
 |--------|----------|--------|
-| GET | `/api/packages?activeOnly` | Public (`activeOnly=false` honoured for Admin only) |
+| GET | `/api/packages?activeOnly` | Public (`activeOnly=false` applies to Admins only) |
 | GET | `/api/packages/{id}` | Public |
 | POST | `/api/packages` | Admin |
 | PUT | `/api/packages/{id}` | Admin |
@@ -206,11 +202,11 @@ All responses use the envelope `{ success, message, data, errors }`.
 |--------|----------|--------|
 | GET | `/api/bookings?page&pageSize&status` | Admin |
 | GET | `/api/bookings/my` | Customer / Employee |
-| GET | `/api/bookings/{id}` | Owning customer, assigned employee, or Admin |
+| GET | `/api/bookings/{id}` | Booking's customer, assigned employee, or Admin |
 | GET | `/api/bookings/available-slots?packageId&date=yyyy-MM-dd` | Authenticated |
 | POST | `/api/bookings` | Customer |
-| PATCH | `/api/bookings/{id}/status` | Assigned employee / Admin |
-| DELETE | `/api/bookings/{id}` (cancel) | Owning customer, assigned employee, or Admin |
+| PATCH | `/api/bookings/{id}/status` | Assigned employee or Admin |
+| DELETE | `/api/bookings/{id}` (cancel) | Booking's customer, assigned employee, or Admin |
 
 ### Inventory
 | Method | Endpoint | Access |
@@ -220,7 +216,7 @@ All responses use the envelope `{ success, message, data, errors }`.
 | GET | `/api/inventory/{id}` | Admin |
 | POST | `/api/inventory` | Admin |
 | PUT | `/api/inventory/{id}` | Admin |
-| DELETE | `/api/inventory/{id}` | Admin (refused while used by a package) |
+| DELETE | `/api/inventory/{id}` | Admin (only items not used by a package) |
 
 ### Schedules
 | Method | Endpoint | Access |
@@ -243,21 +239,26 @@ All responses use the envelope `{ success, message, data, errors }`.
 | POST | `/api/reviews` | Customer |
 | DELETE | `/api/reviews/{id}` | Admin |
 
+### Health
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| GET | `/health` | Public |
+
 ---
 
 ## Key Business Logic
 
 | Feature | Implementation |
 |---------|----------------|
-| JWT Auth (3 roles) | `AuthService` — BCrypt hash, HS256 JWT with role claims. Tokens of deactivated users (or users whose role changed) are rejected on every request (`Program.cs`, `OnTokenValidated`). |
-| Schedules | `EmployeeScheduleTemplate` (date range, working-day bitmask, hours, optional break) + `EmployeeLeave` days |
-| Slot engine | `BookingService.GetAvailableSlotsAsync` — 30-min candidates within employees' template hours, in the shop time zone |
-| Least-busy assignment | `BookingService.CreateBookingAsync` — among free employees, the one with the fewest bookings that day |
-| Status workflow | `BookingService.UpdateBookingStatusAsync` — strictly Pending → Confirmed → InProgress → Completed |
-| Atomic inventory deduction | On Completed — EF transaction, rollback on insufficient stock |
-| Double-booking prevention | Overlap check against non-cancelled bookings of the employee |
-| Post-service review | `ReviewService.CreateReviewAsync` — only on Completed bookings, one per booking, employee taken from the booking |
+| Authentication | `AuthService` — BCrypt password hashes, HS256 JWT with role claims. Each request re-checks that the user is still active and has the same role. |
+| Staff schedules | `EmployeeScheduleTemplate` (date range, working-day bitmask, hours, optional break) and `EmployeeLeave` days |
+| Slot engine | `BookingService.GetAvailableSlotsAsync` — 30-minute slots within employees' working hours, in the shop time zone |
+| Staff assignment | `BookingService.CreateBookingAsync` — chosen employee if free, otherwise the least-busy free employee that day |
+| Status workflow | `BookingService.UpdateBookingStatusAsync` — Pending → Confirmed → InProgress → Completed, one step at a time |
+| Inventory deduction | Deducted in a transaction when a booking is Completed; rolled back on insufficient stock |
+| Double-booking prevention | Overlap check against the employee's non-cancelled bookings |
+| Reviews | `ReviewService.CreateReviewAsync` — Completed bookings only, one per booking, for the assigned employee |
 | Low-stock alerts | `InventoryRepository.GetLowStockItemsAsync` — stock ≤ threshold |
-| Pagination | `GenericRepository.GetPagedAsync` — `page` ≥ 1, `pageSize` clamped to 1–1000 |
-| Soft delete | Users and Packages use `IsActive = false` to preserve historical booking data |
-| Dates & times | Bookings are stored as UTC instants; template/leave dates are calendar days stored as UTC midnight |
+| Pagination | `page` ≥ 1, `pageSize` 1–1000 |
+| Soft delete | Users and packages are deactivated (`IsActive = false`) to keep booking history |
+| Dates & times | Bookings are stored as UTC instants; template and leave dates are calendar dates |
