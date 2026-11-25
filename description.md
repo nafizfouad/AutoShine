@@ -1,96 +1,97 @@
-# AutoShine � System Workflow Documentation
+# AutoShine — System Workflow Documentation
 
-AutoShine is a car-washing and auto-detailing management platform with three distinct user roles: **Admin**, **Employee**, and **Customer**. This document describes every workflow each role can perform.
+AutoShine is a car-wash and auto-service management platform with three user roles: **Admin**, **Employee**, and **Customer**. This document describes the workflows available to each role.
 
 ---
 
-## 1. Authentication (All Roles)
+## 1. Authentication
 
-### Register
-Any visitor can create a new account at /register.
-- Provide first name, last name, email, password, and phone.
-- New accounts are created as **Customer** by default.
-- Duplicate emails are rejected.
+### Register (`/register`)
+Visitors can create their own account.
+- Provide first name, last name, email, phone, and a password (minimum 8 characters).
+- Self-registered accounts are always **Customers**. Admin and Employee accounts are created by an Admin.
+- Each email address can be registered only once.
 
-### Login
-Any registered user can sign in at /login.
-- Provide email and password.
-- On success, a JWT token is issued and stored in the browser.
-- The token carries the user role and ID, which the app uses to show role-specific navigation.
+### Login (`/login`)
+- Sign in with email and password. Deactivated accounts cannot sign in.
+- On success, a JWT is issued and stored in the browser. It carries the user's ID and role, which drive the role-specific navigation.
+- If an Admin deactivates a user or changes their role, that user's current session ends and they must sign in again.
 
 ### Sign Out
-Available from the sidebar on any authenticated page. Clears the local token and redirects to login.
+Available from the sidebar on every authenticated page. Clears the session and returns to the login page.
 
 ---
 
 ## 2. Admin Workflows
 
-### 2.1 Dashboard (/dashboard)
-- See at-a-glance stats: Total Users, Total Bookings, Low Stock Alerts, Active Packages.
-- View the 5 most recent bookings across all customers.
-- View inventory items currently below threshold (low-stock alerts).
+### 2.1 Dashboard (`/dashboard`)
+- Stats: total users, total bookings, low-stock alerts, active packages.
+- The 5 most recent bookings across all customers.
+- Inventory items at or below their minimum threshold.
 
-### 2.2 Manage Packages (/packages)
-- View all packages (active and inactive).
-- Create package: name, description, price, duration, active flag, and linked inventory items with quantities.
-- Edit any existing package.
-- Deactivate / Activate a package (inactive packages are hidden from customers).
-- Delete a package permanently.
+### 2.2 Manage Packages (`/packages`)
+- View all packages, active and inactive, with their linked inventory items.
+- Create a package: name, description, price, duration, active flag, and inventory items with quantities.
+- Edit any package.
+- Deactivate or re-activate a package. Inactive packages are hidden from customers and cannot be booked.
+- Packages are deactivated rather than deleted, so existing bookings keep their history.
 
-> Linked inventory items are consumed (deducted) when a booking is marked Completed.
+> A package's linked inventory items are deducted from stock when a booking for it is marked Completed.
 
-### 2.3 Manage Users (/users)
-- View all users, paginated, with search by name/email and filter by role.
-- Create user: name, email, password, phone, role (Admin / Employee / Customer).
-- Edit any user: name, email, phone, role, active status.
-- Deactivate user: sets IsActive = false so the user cannot log in.
+### 2.3 Manage Users (`/users`)
+- View all users with pagination, case-insensitive search by name or email, and a role filter.
+- Create a user: name, email, password, phone, and role (Admin / Employee / Customer).
+- Edit a user: name, email, phone, role, and active status.
+- Deactivate a user so they can no longer sign in; re-activate them by editing the user.
+- Admins cannot deactivate their own account or remove their own Admin role.
 
-### 2.4 Manage Bookings (/bookings)
+### 2.4 Manage Bookings (`/bookings`)
 - View all bookings, filterable by status.
-- Advance booking status: Pending -> Confirmed -> InProgress -> Completed.
+- Advance a booking one step at a time: Pending → Confirmed → InProgress → Completed. Steps cannot be skipped or reversed.
 - Cancel any booking that is not Completed or already Cancelled.
 
-> Marking Completed auto-deducts inventory linked to the package in a database transaction.
+> Marking a booking Completed deducts the package's inventory in a single database transaction.
 
-### 2.5 Inventory Management (/inventory)
-- View all items with optional low-stock-only filter.
-- Add item: name, SKU, current stock, minimum threshold, unit.
-- Edit or delete any item.
+### 2.5 Inventory (`/inventory`)
+- View all items, optionally only those with low stock.
+- Add an item: name, SKU (unique), current stock, minimum threshold, and unit.
+- Edit any item.
+- Delete an item, provided no package uses it.
 
-### 2.6 Schedule Management (/schedule-management)
-Templates (Recurring Availability):
-- View all templates (employee, date range, working days, work hours, break window).
-- Create template: pick employee, date range, working days bitmask, work start/end, optional break.
-- Edit template: pencil icon opens modal pre-filled with existing values.
-- Delete template.
+### 2.6 Schedule Management (`/schedule-management`)
+**Schedule templates (recurring availability)**
+- View all templates: employee, date range, working days, working hours, and break.
+- Create a template: employee, date range, working days, start and end time, and an optional break.
+  Times are in the shop's configured time zone. The break must fall within working hours.
+- Edit or delete a template.
 
-Leave Days (One-off Absence):
-- View all leave days across all employees.
-- Add leave: employee + date + optional reason.
-- Delete leave to restore availability.
+**Leave days (one-off absence)**
+- View all leave days across employees.
+- Add a leave day: employee, date, and optional reason (one per employee per day).
+- Delete a leave day to restore availability.
 
-### 2.7 Review Moderation (/reviews)
-- Browse reviews per employee, see average rating and total count.
+### 2.7 Review Moderation (`/reviews`)
+- Browse reviews per employee, with average rating and review count.
 - Delete any review.
 
-### 2.8 Profile (/profile)
+### 2.8 Profile (`/profile`)
 - Edit own name and phone.
-- Change password (requires current password).
+- Change password (requires the current password).
 
 ---
 
 ## 3. Employee Workflows
 
-### 3.1 Dashboard (/dashboard)
-- See today job count and status breakdown.
-- View next 5 upcoming assigned bookings.
+### 3.1 Dashboard (`/dashboard`)
+- Today's job count and a breakdown by status.
+- The next 5 upcoming assigned bookings.
 
-### 3.2 My Bookings (/bookings)
-- View all assigned bookings, filterable by status.
-- Advance status: Pending -> Confirmed -> InProgress -> Completed.
-- Cancel a booking.
+### 3.2 My Bookings (`/bookings`)
+- View all bookings assigned to them, filterable by status.
+- Advance their assigned bookings: Pending → Confirmed → InProgress → Completed.
+- Cancel an assigned booking.
 
-### 3.3 Profile (/profile)
+### 3.3 Profile (`/profile`)
 - Edit own name and phone.
 - Change password.
 
@@ -98,87 +99,91 @@ Leave Days (One-off Absence):
 
 ## 4. Customer Workflows
 
-### 4.1 Dashboard (/dashboard)
-- Quick stats: Upcoming, Completed, Total Bookings.
-- Table of upcoming appointments.
+### 4.1 Dashboard (`/dashboard`)
+- Stats: upcoming, completed, and total bookings.
+- A table of upcoming appointments.
 
-### 4.2 Browse Services (/services)
-- View all active packages with name, description, price, duration, and materials.
-- Click Book This to jump to the booking wizard with that package pre-selected.
+### 4.2 Browse Services (`/services`)
+- View all active packages with name, description, price, duration, and included materials.
+- **Book This** opens the booking wizard with that package pre-selected.
 
-### 4.3 Book a Service (/book) � 4-step wizard
-Step 1 � Service: choose a package.
-Step 2 � Date: pick a date from the calendar.
-Step 3 � Time and Staff: see available slots for the chosen date and package; each slot shows available employees. Pick a preferred employee or No Preference for auto-assign.
-Step 4 � Confirm: review the full summary and add optional notes, then confirm. Booking is created as Pending.
+### 4.3 Book a Service (`/book`) — 4-step wizard
+1. **Service** — choose a package.
+2. **Date** — pick a date from the calendar.
+3. **Time & Staff** — choose one of the available time slots for that date and package, then pick a specific employee or **No Preference**.
+4. **Confirm** — review the summary, add optional notes, and confirm. The booking is created as **Pending**.
 
-### 4.4 My Bookings (/bookings)
-- View all own bookings, filterable by status.
-- Cancel any non-completed, non-cancelled booking.
+### 4.4 My Bookings (`/bookings`)
+- View own bookings, filterable by status.
+- Cancel own bookings that are not Completed or Cancelled.
 - Leave a review on Completed bookings that have an assigned employee.
 
 ### 4.5 Leave a Review
-- Rate the employee 1-5 stars and add an optional comment.
+- Rate the employee who performed the service from 1 to 5 stars, with an optional comment.
 - One review per booking.
 
-### 4.6 Profile (/profile)
-- Edit name and phone.
-- Change password (email is read-only).
+### 4.6 Profile (`/profile`)
+- Edit name and phone (email is read-only).
+- Change password.
 
 ---
 
 ## 5. Booking Lifecycle
 
-  Pending -> Confirmed -> InProgress -> Completed (inventory deducted here)
-  Any non-completed stage -> Cancelled
+```
+Pending → Confirmed → InProgress → Completed   (inventory deducted on Completed)
+Pending / Confirmed / InProgress → Cancelled
+```
 
-| Status    | Who Sets It          | Meaning                              |
-|-----------|----------------------|--------------------------------------|
-| Pending   | System on creation   | Awaiting confirmation                |
-| Confirmed | Employee / Admin     | Appointment confirmed                |
-| InProgress| Employee / Admin     | Car is being serviced                |
-| Completed | Employee / Admin     | Job done; inventory auto-deducted    |
-| Cancelled | Customer/Employee/Admin | Booking void                      |
-
----
-
-## 6. Slot Availability Algorithm
-
-When a customer picks a date and package, available time slots are computed:
-1. Load active schedule templates whose date range covers the chosen date.
-2. Filter to templates whose workingDays bitmask includes the day-of-week.
-3. Exclude employees on leave that date.
-4. Generate 30-minute candidate slots from earliest work-start to latest work-end.
-5. For each slot and each employee: verify work window covers the slot, break window does not overlap, and no existing booking conflicts.
-6. Slots with at least one free employee are returned.
+| Status     | Set by                                       | Meaning                           |
+|------------|----------------------------------------------|-----------------------------------|
+| Pending    | System, on creation                          | Awaiting confirmation             |
+| Confirmed  | Assigned employee or Admin                   | Appointment confirmed             |
+| InProgress | Assigned employee or Admin                   | Vehicle is being serviced         |
+| Completed  | Assigned employee or Admin                   | Job done; inventory deducted      |
+| Cancelled  | Booking's customer, assigned employee, or Admin | Booking void                   |
 
 ---
 
-## 7. Inventory and Stock Management
+## 6. Availability and Assignment
 
-- Each package lists inventory items with required quantities.
-- On Completed, stock is atomically deducted in a transaction; rolled back if any item has insufficient stock.
-- Low-stock alerts fire when currentStock <= minimumThreshold (visible on Admin dashboard and Inventory page).
+Available slots for a date and package are calculated in the shop's time zone:
+1. Take the active schedule templates of active employees whose date range includes the date and whose working days include that weekday.
+2. Exclude employees on leave that day.
+3. Generate 30-minute candidate start times between the earliest start and the latest end of those templates, skipping times that have already passed.
+4. An employee is free for a slot if their working hours cover the whole slot, the slot does not overlap their break, and they have no other non-cancelled booking at that time.
+5. Every slot with at least one free employee is offered, together with the list of free employees.
+
+When a booking is created, the same rules are checked again:
+- **Specific employee** — the booking succeeds only if that employee is free for the slot.
+- **No Preference** — the free employee with the fewest bookings that day is assigned.
+
+---
+
+## 7. Inventory and Stock
+
+- Each package lists the inventory items it consumes and their quantities.
+- When a booking is marked Completed, stock for all of the package's items is deducted in one transaction. If any item has insufficient stock, nothing is deducted and the booking stays InProgress.
+- An item is low on stock when its current stock is at or below its minimum threshold. Low-stock items appear on the Admin dashboard and can be filtered on the Inventory page.
 
 ---
 
 ## 8. Role Capability Summary
 
-| Capability                   | Admin | Employee | Customer |
-|------------------------------|:-----:|:--------:|:--------:|
-| Register / Login             |  YES  |   YES    |   YES    |
-| View and edit own profile    |  YES  |   YES    |   YES    |
-| Browse services              |   -   |    -     |   YES    |
-| Book a service               |   -   |    -     |   YES    |
-| View own bookings            |  YES  |   YES    |   YES    |
-| Cancel a booking             |  YES  |   YES    |   YES    |
-| Advance booking status       |  YES  |   YES    |    -     |
-| Leave a review               |   -   |    -     |   YES    |
-| Manage all users             |  YES  |    -     |    -     |
-| Manage packages              |  YES  |    -     |    -     |
-| View all bookings            |  YES  |    -     |    -     |
-| Manage inventory             |  YES  |    -     |    -     |
-| Manage schedules and leaves  |  YES  |    -     |    -     |
-| Moderate reviews             |  YES  |    -     |    -     |
-| View admin dashboard stats   |  YES  |    -     |    -     |
-git 
+| Capability                     | Admin | Employee | Customer |
+|--------------------------------|:-----:|:--------:|:--------:|
+| Self-register                  |   -   |    -     |   YES    |
+| Log in                         |  YES  |   YES    |   YES    |
+| View and edit own profile      |  YES  |   YES    |   YES    |
+| Browse services                |   -   |    -     |   YES    |
+| Book a service                 |   -   |    -     |   YES    |
+| View bookings                  |  All  | Assigned |   Own    |
+| Cancel a booking               |  All  | Assigned |   Own    |
+| Advance booking status         |  All  | Assigned |    -     |
+| Leave a review                 |   -   |    -     |   YES    |
+| Manage users                   |  YES  |    -     |    -     |
+| Manage packages                |  YES  |    -     |    -     |
+| Manage inventory               |  YES  |    -     |    -     |
+| Manage schedules and leave     |  YES  |    -     |    -     |
+| Moderate reviews               |  YES  |    -     |    -     |
+| View admin dashboard stats     |  YES  |    -     |    -     |
