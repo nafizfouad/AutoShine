@@ -63,11 +63,13 @@ export default function App() {
                 background: 'var(--bg-card)',
                 color: 'var(--text)',
                 border: '1px solid var(--border)',
-                borderRadius: '8px',
-                fontSize: '14px',
+                borderRadius: '10px',
+                boxShadow: 'var(--shadow)',
+                fontSize: '14.5px',
+                fontFamily: 'var(--font-ui)',
               },
-              success: { iconTheme: { primary: '#10b981', secondary: 'var(--bg-card)' } },
-              error: { iconTheme: { primary: '#ef4444', secondary: 'var(--bg-card)' } },
+              success: { iconTheme: { primary: 'var(--success)', secondary: 'var(--bg-card)' } },
+              error: { iconTheme: { primary: 'var(--danger)', secondary: 'var(--bg-card)' } },
             }}
           />
         </BrowserRouter>
